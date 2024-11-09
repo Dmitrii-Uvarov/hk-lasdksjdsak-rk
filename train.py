@@ -335,8 +335,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    image_dir = args[0]
-    epochs_dir = args[1]
+    image_dir = args.image_dir
+    epochs_dir = args.epochs_dir
     create_directory_if_not_exists(epochs_dir)
     output_file = "image_labels.txt"
     create_image_label_txt(image_dir, output_file)
