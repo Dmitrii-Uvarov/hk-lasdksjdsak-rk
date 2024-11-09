@@ -718,27 +718,42 @@ if __name__ == "__main__":
         train_embeddings = []
         train_labels = []
 
-        for images, labels, target_embeddings in train_loader:
+        for images, labels, caption_embeddings in train_loader:
             images = images.to(device)
-            labels = labels.to(device, dtype=torch.long)
-            target_embeddings = target_embeddings.to(device)
+            labels = labels.to(device)
+            caption_embeddings = caption_embeddings.to(device)
 
             for optimizer in optimizers.values():
                 optimizer.zero_grad()
 
             trunk_output = models['trunk'](images)
-            embeddings = models['embedder'](trunk_output)
-            logits = models['classifier'](embeddings)
+            image_embeddings = models['embedder'](trunk_output)
+            logits = models['classifier'](image_embeddings)
 
-            metric_loss = loss_funcs['metric_loss'](embeddings, labels)
+            metric_loss = loss_funcs['metric_loss'](image_embeddings, labels)
             classifier_loss = loss_funcs['classifier_loss'](logits, labels)
-            cosine_similarity = torch.nn.functional.cosine_similarity(target_embeddings[0::2], target_embeddings[1::2], dim=1)
-            embedding_loss = 1 - cosine_similarity.mean()
+
+            image_embeddings = F.normalize(image_embeddings, dim=1)
+            caption_embeddings = F.normalize(caption_embeddings, dim=1)
+
+            logits_per_image = image_embeddings @ caption_embeddings.T
+            logits_per_caption = logits_per_image.T
+
+            temperature = 0.07
+            logits_per_image /= temperature
+            logits_per_caption /= temperature
+
+            batch_size = images.size(0)
+            contrastive_labels = torch.arange(batch_size).to(device)
+
+            loss_image = F.cross_entropy(logits_per_image, contrastive_labels)
+            loss_caption = F.cross_entropy(logits_per_caption, contrastive_labels)
+            contrastive_loss = (loss_image + loss_caption) / 2
 
             total_loss = (
                 loss_weights['metric_loss'] * metric_loss +
                 loss_weights['classifier_loss'] * classifier_loss +
-                loss_weights['embedding_loss'] * embedding_loss
+                loss_weights['contrastive_loss'] * contrastive_loss
             )
 
             total_loss.backward()
@@ -746,7 +761,7 @@ if __name__ == "__main__":
                 optimizer.step()
 
             train_loss += total_loss.item()
-            train_embeddings.append(embeddings.cpu())
+            train_embeddings.append(image_embeddings.cpu())
             train_labels.append(labels.cpu())
 
             train_loader_tqdm.set_postfix(loss=total_loss.item())
@@ -778,13 +793,28 @@ if __name__ == "__main__":
 
                 metric_loss = loss_funcs['metric_loss'](embeddings, labels)
                 classifier_loss = loss_funcs['classifier_loss'](logits, labels)
-                cosine_similarity = torch.nn.functional.cosine_similarity(target_embeddings[0::2], target_embeddings[1::2], dim=1)
-                embedding_loss = 1 - cosine_similarity.mean()
+                
+                image_embeddings = F.normalize(image_embeddings, dim=1)
+                caption_embeddings = F.normalize(caption_embeddings, dim=1)
+
+                logits_per_image = image_embeddings @ caption_embeddings.T
+                logits_per_caption = logits_per_image.T
+
+                temperature = 0.07
+                logits_per_image /= temperature
+                logits_per_caption /= temperature
+
+                batch_size = images.size(0)
+                contrastive_labels = torch.arange(batch_size).to(device)
+
+                loss_image = F.cross_entropy(logits_per_image, contrastive_labels)
+                loss_caption = F.cross_entropy(logits_per_caption, contrastive_labels)
+                contrastive_loss = (loss_image + loss_caption) / 2
 
                 total_loss = (
                     loss_weights['metric_loss'] * metric_loss +
                     loss_weights['classifier_loss'] * classifier_loss +
-                    loss_weights['embedding_loss'] * embedding_loss
+                    loss_weights['contrastive_loss'] * contrastive_loss
                 )
 
                 val_loss += total_loss.item()
