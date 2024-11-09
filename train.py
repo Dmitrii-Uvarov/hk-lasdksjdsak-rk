@@ -789,10 +789,10 @@ if __name__ == "__main__":
                 target_embeddings = target_embeddings.to(device)
 
                 trunk_output = models['trunk'](images)
-                embeddings = models['embedder'](trunk_output)
-                logits = models['classifier'](embeddings)
+                image_embeddings = models['embedder'](trunk_output)
+                logits = models['classifier'](image_embeddings)
 
-                metric_loss = loss_funcs['metric_loss'](embeddings, labels)
+                metric_loss = loss_funcs['metric_loss'](image_embeddings, labels)
                 classifier_loss = loss_funcs['classifier_loss'](logits, labels)
                 
                 image_embeddings = F.normalize(image_embeddings, dim=1)
@@ -821,7 +821,7 @@ if __name__ == "__main__":
                 )
 
                 val_loss += total_loss.item()
-                val_embeddings.append(embeddings.cpu())
+                val_embeddings.append(image_embeddings.cpu())
                 val_labels.append(labels.cpu())
 
                 test_loader_tqdm.set_postfix(loss=total_loss.item())
