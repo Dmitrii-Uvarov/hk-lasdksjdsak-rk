@@ -106,8 +106,8 @@ class ImageProjectionModel(nn.Module):
 
     def forward(self, images):
         # processed_images = [toPIL(img) for img in images]
-        # # with torch.no_grad():
-        embeddings = self.base_model.get_image_features(images)
+        with torch.no_grad():
+            embeddings = self.base_model.get_image_features(images)
         projections = self.projection_head(embeddings)
         return projections
 
@@ -264,6 +264,9 @@ def train(model, optimizer, criterion, scheduler, train_loader, test_loader, num
 
             train_loader_tqdm.set_postfix(loss=loss.item())
 
+        train_embeddings = torch.cat(train_embeddings)
+        train_labels = torch.cat(train_labels)
+
         scheduler.step()
         model.eval()
         val_loss = 0
@@ -281,8 +284,37 @@ def train(model, optimizer, criterion, scheduler, train_loader, test_loader, num
 
                 test_loader_tqdm.set_postfix(loss=loss.item())
 
+        val_embeddings = torch.cat(val_embeddings)
+        val_labels = torch.cat(val_labels)
+
         print(f"Epoch [{epoch+1}/{num_epochs}], Train Loss: {train_loss/len(train_loader)}, Val Loss: {val_loss/len(test_loader)}")
         torch.save(model.state_dict(), f"{epochs_dir}/triplet_weights_epoch_{epoch}.pth")
+
+        matching_ratios = []
+        average_precisions = []
+
+        for i in range(len(val_embeddings)):
+            val_emb = val_embeddings[i]
+            val_label = val_labels[i]
+
+            distances = torch.nn.functional.cosine_similarity(train_embeddings, val_emb.unsqueeze(0), dim=1)
+            nearest_indices = torch.topk(distances, k=10, largest=False).indices
+            nearest_labels = train_labels[nearest_indices]
+
+            num_matching = (nearest_labels == val_label).sum().item()
+            matching_ratio = num_matching / 10.0
+            matching_ratios.append(matching_ratio)
+
+            relevant_indices = (nearest_labels == val_label).nonzero(as_tuple=True)[0]
+            precisions = [(rank + 1) / (index + 1) for rank, index in enumerate(relevant_indices.tolist())]
+            average_precision = sum(precisions) / len(precisions) if precisions else 0
+            average_precisions.append(average_precision)
+
+        average_matching_ratio = sum(matching_ratios) / len(matching_ratios)
+        map10 = sum(average_precisions) / len(average_precisions)
+        print("\nValidation metric based on nearest neighbors:")
+        print(f"Average matching ratio: {average_matching_ratio:.4f}")
+        print(f"MAP@10: {map10:.4f}")
 
 
 
@@ -329,6 +361,9 @@ if __name__ == "__main__":
 
     base_model = AutoModel.from_pretrained('jinaai/jina-clip-v1', trust_remote_code=True)
 
+    for param in base_model.parameters():
+        param.requires_grad = False
+
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using {device} device")
@@ -359,50 +394,50 @@ if __name__ == "__main__":
           epochs_dir)
 
 
-    from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+    # from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
-    model.eval()
+    # model.eval()
 
-    def compute_embeddings(dataloader):
-        embeddings = []
-        labels = []
-        with torch.no_grad():
-            for imgs, lbls in tqdm(dataloader, desc="Computing embeddings"):
-                imgs = imgs.to(device)
-                emb = model(imgs)
-                embeddings.append(emb.cpu())
-                labels.append(lbls)
-        embeddings = torch.cat(embeddings)
-        labels = torch.cat(labels)
-        return embeddings, labels
+    # def compute_embeddings(dataloader):
+    #     embeddings = []
+    #     labels = []
+    #     with torch.no_grad():
+    #         for imgs, lbls in tqdm(dataloader, desc="Computing embeddings"):
+    #             imgs = imgs.to(device)
+    #             emb = model(imgs)
+    #             embeddings.append(emb.cpu())
+    #             labels.append(lbls)
+    #     embeddings = torch.cat(embeddings)
+    #     labels = torch.cat(labels)
+    #     return embeddings, labels
 
-    train_embeddings, train_labels = compute_embeddings(train_loader)
-    val_embeddings, val_labels = compute_embeddings(test_loader)
+    # train_embeddings, train_labels = compute_embeddings(train_loader)
+    # val_embeddings, val_labels = compute_embeddings(test_loader)
 
-    matching_ratios = []
-    average_precisions = []
-    for i in tqdm(range(len(val_embeddings)), desc="Evaluating validation samples"):
-        val_emb = val_embeddings[i]
-        val_label = val_labels[i]
+    # matching_ratios = []
+    # average_precisions = []
+    # for i in tqdm(range(len(val_embeddings)), desc="Evaluating validation samples"):
+    #     val_emb = val_embeddings[i]
+    #     val_label = val_labels[i]
 
-        distances = torch.nn.functional.cosine_similarity(train_embeddings, val_emb.unsqueeze(0), dim=1)
+    #     distances = torch.nn.functional.cosine_similarity(train_embeddings, val_emb.unsqueeze(0), dim=1)
 
-        nearest_indices = torch.topk(distances, k=10, largest=False).indices
+    #     nearest_indices = torch.topk(distances, k=10, largest=False).indices
 
-        nearest_labels = train_labels[nearest_indices]
+    #     nearest_labels = train_labels[nearest_indices]
 
-        num_matching = (nearest_labels == val_label).sum().item()
+    #     num_matching = (nearest_labels == val_label).sum().item()
 
-        matching_ratio = num_matching / 10.0
+    #     matching_ratio = num_matching / 10.0
 
-        matching_ratios.append(matching_ratio)
-        relevant_indices = (nearest_labels == val_label).nonzero(as_tuple=True)[0]  # Positions where labels match
-        precisions = [(rank + 1) / (index + 1) for rank, index in enumerate(relevant_indices.tolist())]
-        average_precision = sum(precisions) / len(precisions) if precisions else 0
-        average_precisions.append(average_precision)
+    #     matching_ratios.append(matching_ratio)
+    #     relevant_indices = (nearest_labels == val_label).nonzero(as_tuple=True)[0]  # Positions where labels match
+    #     precisions = [(rank + 1) / (index + 1) for rank, index in enumerate(relevant_indices.tolist())]
+    #     average_precision = sum(precisions) / len(precisions) if precisions else 0
+    #     average_precisions.append(average_precision)
 
-    average_matching_ratio = sum(matching_ratios) / len(matching_ratios)
-    map10 = sum(average_precisions) / len(average_precisions)
-    print("\nValidation metric based on nearest neighbors:")
-    print(f"Average matching ratio: {average_matching_ratio:.4f}")
-    print(f"MAP@10: {map10:.4f}")
+    # average_matching_ratio = sum(matching_ratios) / len(matching_ratios)
+    # map10 = sum(average_precisions) / len(average_precisions)
+    # print("\nValidation metric based on nearest neighbors:")
+    # print(f"Average matching ratio: {average_matching_ratio:.4f}")
+    # print(f"MAP@10: {map10:.4f}")
