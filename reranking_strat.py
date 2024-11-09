@@ -92,7 +92,6 @@ class ImageLabelDataset(Dataset):
         with open(txt_file, 'r') as file:
             for line in file:
                 image_path, label = line.strip().split(';')
-                image_path = image_dir+'/'+image_path
                 self.image_label_list.append((image_path, int(label)))
 
     def __len__(self):
@@ -177,8 +176,10 @@ if __name__ == "__main__":
 
     reranked_top10 = []
     for i, (query_img_path, label) in enumerate(test_labels):
-        candidate_paths = [test_labels[idx][0] for idx in top50_indices[i]]
-        top10_images = rerank_with_clip(query_img_path, candidate_paths, clip_model, clip_processor, device)
+        candidate_paths = [os.path.join(image_dir, test_labels[idx][0]) for idx in top50_indices[i]]
+        top10_images = rerank_with_clip(
+            os.path.join(image_dir, query_img_path),
+            candidate_paths, clip_model, clip_processor, device)
         reranked_top10.append([test_labels.index(img) for img in top10_images])
 
     map_reranked = mean_average_precision_at_k(test_labels, reranked_top10)
