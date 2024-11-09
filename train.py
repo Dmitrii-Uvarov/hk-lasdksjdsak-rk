@@ -575,12 +575,12 @@ if __name__ == "__main__":
 
     metric_loss = losses.TripletMarginLoss(margin=0.2, distance=CosineSimilarity())  
 
-    miner = miners.TripletMarginMiner(margin=0.2, type_of_triplets='semihard')
+    miner = miners.TripletMarginMiner(margin=0.3, type_of_triplets='hard')
 
     sampler = MPerClassSampler(train_labels, m=args.m_per_batch_size, length_before_new_iter=len(train_labels))
 
     trunk_optimizer = torch.optim.Adam(trunk.parameters(), lr=5e-5, weight_decay=1e-5)
-    embedder_optimizer = torch.optim.Adam(embedder.parameters(), lr=e-3, weight_decay=1e-5)
+    embedder_optimizer = torch.optim.Adam(embedder.parameters(), lr=1e-3, weight_decay=1e-5)
 
     models = {'trunk': trunk, 'embedder': embedder}
     optimizers = {'trunk_optimizer': trunk_optimizer, 'embedder_optimizer': embedder_optimizer}
@@ -594,7 +594,7 @@ if __name__ == "__main__":
 
     classifier = nn.DataParallel(Classifier(embedding_dim=args.embedding_size, num_classes=num_classes)).to(device)  
 
-    classifier_optimizer = torch.optim.Adam(classifier.parameters(), lr=e-3, weight_decay=1e-5)
+    classifier_optimizer = torch.optim.Adam(classifier.parameters(), lr=1e-3, weight_decay=1e-5)
 
     optimizers['classifier_optimizer'] = classifier_optimizer
 
