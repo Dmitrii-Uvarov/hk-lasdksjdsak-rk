@@ -720,7 +720,7 @@ if __name__ == "__main__":
 
         for images, labels, target_embeddings in train_loader:
             images = images.to(device)
-            labels = labels.to(device)
+            labels = labels.to(device, dtype=torch.long)
             target_embeddings = target_embeddings.to(device)
 
             for optimizer in optimizers.values():
@@ -769,7 +769,7 @@ if __name__ == "__main__":
         with torch.no_grad():
             for images, labels, target_embeddings in test_loader:
                 images = images.to(device)
-                labels = labels.to(device)
+                labels = labels.to(device, dtype=torch.long)
                 target_embeddings = target_embeddings.to(device)
 
                 trunk_output = models['trunk'](images)
