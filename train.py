@@ -390,7 +390,7 @@ if __name__ == "__main__":
 
 
     m_per_class = 16
-    batch_size = 128
+    batch_size = 64
     sampler_train = MPerClassSampler(dataset=train_dataset, m=m_per_class, batch_size=batch_size)
     train_loader = DataLoader(train_dataset, batch_size=batch_size, sampler=sampler_train)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
