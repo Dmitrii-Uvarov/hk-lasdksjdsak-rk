@@ -173,10 +173,10 @@ if __name__ == "__main__":
     clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
 
     reranked_top10 = []
-    for i, (query_img_path, label) in enumerate(test_dataset.image_label_list):
-        candidate_paths = [test_dataset.image_label_list[idx][0] for idx in top50_indices[i]]
+    for i, (query_img_path, label) in enumerate(test_labels):
+        candidate_paths = [test_labels[idx][0] for idx in top50_indices[i]]
         top10_images = rerank_with_clip(query_img_path, candidate_paths, clip_model, clip_processor, device)
-        reranked_top10.append([test_dataset.image_label_list.index(img) for img in top10_images])
+        reranked_top10.append([test_labels.index(img) for img in top10_images])
 
     map_reranked = mean_average_precision_at_k(test_labels, reranked_top10)
 
