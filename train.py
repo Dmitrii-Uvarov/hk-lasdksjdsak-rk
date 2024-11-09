@@ -745,7 +745,7 @@ if __name__ == "__main__":
             logits_per_caption /= temperature
 
             batch_size = images.size(0)
-            contrastive_labels = torch.arange(batch_size).to(device)
+            contrastive_labels = torch.arange(batch_size, dtype=torch.long).to(device)
 
             loss_image = F.cross_entropy(logits_per_image, contrastive_labels)
             loss_caption = F.cross_entropy(logits_per_caption, contrastive_labels)
@@ -806,8 +806,7 @@ if __name__ == "__main__":
                 logits_per_caption /= temperature
 
                 batch_size = images.size(0)
-                contrastive_labels = torch.arange(batch_size).to(device)
-
+                contrastive_labels = torch.arange(batch_size, dtype=torch.long).to(device)      
                 loss_image = F.cross_entropy(logits_per_image, contrastive_labels)
                 loss_caption = F.cross_entropy(logits_per_caption, contrastive_labels)
                 contrastive_loss = (loss_image + loss_caption) / 2
