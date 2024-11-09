@@ -580,14 +580,14 @@ if __name__ == "__main__":
     # create_image_label_txt(image_dir, output_file)
 
 
-    # transform = transforms.Compose([
-    #     # transforms.Resize((224, 224)),
-    #     # transforms.RandomResizedCrop(224, scale=(0.8, 1.0), ratio=(0.75, 1.33)),
-    #     # transforms.RandomHorizontalFlip(),
-    #     # transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.1),
-    #     # transforms.RandomRotation(degrees=10),
-    #     transforms.ToTensor()
-    # ])
+    transform = transforms.Compose([
+        # transforms.Resize((224, 224)),
+        # transforms.RandomResizedCrop(224, scale=(0.8, 1.0), ratio=(0.75, 1.33)),
+        transforms.RandomHorizontalFlip(),
+        transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.1),
+        transforms.RandomRotation(degrees=10),
+        # transforms.ToTensor()
+    ])
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
