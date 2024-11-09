@@ -589,6 +589,7 @@ if __name__ == "__main__":
     image_dir = args.image_dir
     epochs_dir = args.epochs_dir
     create_directory_if_not_exists(epochs_dir)
+    batch_size = args.batch_size
 
 
     transform = transforms.Compose([
