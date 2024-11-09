@@ -619,13 +619,13 @@ if __name__ == "__main__":
     train_labels = [dataset.image_label_list[idx][1] for idx in train_dataset.indices]
     test_labels = [dataset.image_label_list[idx][1] for idx in test_dataset.indices]
 
-    metric_loss = losses.TripletMarginLoss(margin=0.2, distance=CosineSimilarity())
+    metric_loss = losses.TripletMarginLoss(margin=0.3, distance=CosineSimilarity())
 
-    miner = miners.TripletMarginMiner(margin=0.1, type_of_triplets='semihard')
+    miner = miners.TripletMarginMiner(margin=0.5, type_of_triplets='semihard')
 
     sampler = MPerClassSampler(train_labels, m=args.m_per_batch_size, length_before_new_iter=len(train_labels))
 
-    trunk_optimizer = torch.optim.Adam(trunk.parameters(), lr=5e-5, weight_decay=1e-5)
+    trunk_optimizer = torch.optim.Adam(trunk.parameters(), lr=5e-6, weight_decay=1e-5)
     embedder_optimizer = torch.optim.Adam(embedder.parameters(), lr=1e-4, weight_decay=1e-5)
 
     models = {'trunk': trunk, 'embedder': embedder}
