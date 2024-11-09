@@ -621,7 +621,7 @@ if __name__ == "__main__":
 
     metric_loss = losses.TripletMarginLoss(margin=0.5, distance=CosineSimilarity())
 
-    miner = miners.TripletMarginMiner(margin=0.4, type_of_triplets='hard')
+    miner = miners.TripletMarginMiner(margin=0.4, type_of_triplets='semihard')
 
     sampler = MPerClassSampler(train_labels, m=args.m_per_batch_size, length_before_new_iter=len(train_labels))
 
