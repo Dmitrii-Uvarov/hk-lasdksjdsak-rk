@@ -567,7 +567,7 @@ if __name__ == "__main__":
     parser.add_argument("--image_dir", type=str, default="../sekrrno/dataset", help="image dir")
     parser.add_argument("--epochs_dir", type=str, default="./epochs", help="epochs dir")
     parser.add_argument("--embedding_size", type=int, default=64, help="embedding size")
-    parser.add_argument("--m_per_batch_size", type=int, default=2, help="m_per_batch_size")
+    parser.add_argument("--m_per_batch_size", type=int, default=8, help="m_per_batch_size")
     parser.add_argument("--batch_size", type=int, default=512, help="batch size")
     parser.add_argument("--load_last", type=bool, default=True, help="load last")
 
@@ -610,9 +610,9 @@ if __name__ == "__main__":
     test_labels = [dataset.image_label_list[idx][1] for idx in test_dataset.indices]
 
 
-    metric_loss = losses.TripletMarginLoss(margin=0.2, distance=CosineSimilarity())  
+    metric_loss = losses.TripletMarginLoss(margin=0.3, distance=CosineSimilarity())  
 
-    miner = miners.TripletMarginMiner(margin=0.5, type_of_triplets='semihard')
+    miner = miners.TripletMarginMiner(margin=0.8, type_of_triplets='semihard')
 
     sampler = MPerClassSampler(train_labels, m=args.m_per_batch_size, length_before_new_iter=len(train_labels))
 
