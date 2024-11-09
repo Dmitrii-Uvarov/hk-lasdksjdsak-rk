@@ -806,9 +806,6 @@ if __name__ == "__main__":
                 logits_per_caption /= temperature
 
                 batch_size = images.size(0)
-                print(batch_size)
-                print(images.shape)
-                print()
                 contrastive_labels = torch.arange(batch_size, dtype=torch.long).to(device)      
                 loss_image = F.cross_entropy(logits_per_image, contrastive_labels)
                 loss_caption = F.cross_entropy(logits_per_caption, contrastive_labels)
@@ -830,7 +827,7 @@ if __name__ == "__main__":
         val_labels = torch.cat(val_labels)
 
         print(f"Epoch [{epoch+1}/{num_epochs}], Train Loss: {train_loss/len(train_loader)}, Val Loss: {val_loss/len(test_loader)}")
-        save_checkpoint(models, optimizers, schedulers, epoch, epochs_dir)
+        save_checkpoint(models, optimizers, epoch, epochs_dir)
 
         matching_ratios = []
         average_precisions = []
