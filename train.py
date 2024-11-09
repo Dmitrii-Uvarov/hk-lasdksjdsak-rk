@@ -531,8 +531,8 @@ if __name__ == "__main__":
     parser.add_argument("--image_dir", type=str, default="../sekrrno/dataset", help="image dir")
     parser.add_argument("--epochs_dir", type=str, default="./epochs", help="epochs dir")
     parser.add_argument("--embedding_size", type=int, default=32, help="embedding size")
-    parser.add_argument("--m_per_batch_size", type=int, default=4, help="m_per_batch_size")
-    parser.add_argument("--batch_size", type=int, default=256, help="batch size")
+    parser.add_argument("--m_per_batch_size", type=int, default=32, help="m_per_batch_size")
+    parser.add_argument("--batch_size", type=int, default=512, help="batch size")
 
     args = parser.parse_args()
 
@@ -546,8 +546,8 @@ if __name__ == "__main__":
     transform = transforms.Compose([
         transforms.Resize((224, 224)),
         # transforms.RandomResizedCrop(224, scale=(0.8, 1.0), ratio=(0.75, 1.33)),
-        transforms.RandomHorizontalFlip(),
-        transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.1),
+        # transforms.RandomHorizontalFlip(),
+        # transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.1),
         # transforms.RandomRotation(degrees=10),
         transforms.ToTensor()
     ])
