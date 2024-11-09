@@ -5,7 +5,7 @@ import torch
 from transformers import AutoModel
 from tqdm import tqdm
 
-def generate_embeddings(input_json, output_json, batch_size=128, task="text-matching"):
+def generate_embeddings(input_json, output_json, batch_size=1024, task="text-matching"):
 
     with open(input_json, 'r', encoding='utf-8') as f:
         data = json.load(f)
@@ -35,7 +35,7 @@ def generate_embeddings(input_json, output_json, batch_size=128, task="text-matc
             if isinstance(batch_embeddings, torch.Tensor):
                 batch_embeddings = batch_embeddings.cpu().numpy()
             else:
-                batch_embeddings = [emb.cpu().numpy() for emb in batch_embeddings]
+                batch_embeddings = [emb for emb in batch_embeddings]
         
         for file_path, embedding, label in zip(batch_file_paths, batch_embeddings, batch_labels):
             embeddings_list.append({
