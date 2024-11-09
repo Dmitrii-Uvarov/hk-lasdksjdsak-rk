@@ -427,7 +427,7 @@ class Embedder(nn.Module):
         )
 
     def forward(self, x):
-        return self.projection_head(x.last_hidden_state[:, 0, :])
+        return self.projection_head(x.last_hidden_state)
 
 
 class Classifier(nn.Module):
@@ -571,14 +571,6 @@ def load_last_checkpoint(models, optimizers, epochs_dir):
     return checkpoint['epoch'] + 1
 
 
-seed = 100
-torch.manual_seed(seed)
-torch.cuda.manual_seed_all(seed)
-random.seed(seed)
-np.random.seed(seed)
-torch.backends.cudnn.deterministic = True
-torch.backends.cudnn.benchmark = False
-
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Training script for a neural network")
@@ -681,7 +673,7 @@ if __name__ == "__main__":
         sampler=sampler,
         loss_weights=loss_weights,
         dataloader_num_workers=4,
-        dataset=dataset,
+        dataset=train_dataset,
         data_device=device,
     )
 
