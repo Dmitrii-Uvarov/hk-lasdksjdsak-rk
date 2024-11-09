@@ -1,0 +1,1 @@
+python train.py --image_dir ../sekrrno/dataset --epochs_dir ./epochs
