@@ -796,9 +796,9 @@ if __name__ == "__main__":
                 classifier_loss = loss_funcs['classifier_loss'](logits, labels)
                 
                 image_embeddings = F.normalize(image_embeddings, dim=1)
-                caption_embeddings = F.normalize(caption_embeddings, dim=1)
+                target_embeddings = F.normalize(target_embeddings, dim=1)
 
-                logits_per_image = image_embeddings @ caption_embeddings.T
+                logits_per_image = image_embeddings @ target_embeddings.T
                 logits_per_caption = logits_per_image.T
 
                 temperature = 0.07
@@ -806,6 +806,9 @@ if __name__ == "__main__":
                 logits_per_caption /= temperature
 
                 batch_size = images.size(0)
+                print(batch_size)
+                print(images.shape)
+                print()
                 contrastive_labels = torch.arange(batch_size, dtype=torch.long).to(device)      
                 loss_image = F.cross_entropy(logits_per_image, contrastive_labels)
                 loss_caption = F.cross_entropy(logits_per_caption, contrastive_labels)
