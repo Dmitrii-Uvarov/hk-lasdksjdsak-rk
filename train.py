@@ -427,7 +427,7 @@ class Embedder(nn.Module):
         )
 
     def forward(self, x):
-        return self.projection_head(x.last_hidden_state[:, 0, :])
+        return self.projection_head(x)
 
 
 class Classifier(nn.Module):
