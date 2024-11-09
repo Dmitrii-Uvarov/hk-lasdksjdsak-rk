@@ -571,6 +571,14 @@ def load_last_checkpoint(models, optimizers, epochs_dir):
     return checkpoint['epoch'] + 1
 
 
+seed = 100
+torch.manual_seed(seed)
+torch.cuda.manual_seed_all(seed)
+random.seed(seed)
+np.random.seed(seed)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Training script for a neural network")
