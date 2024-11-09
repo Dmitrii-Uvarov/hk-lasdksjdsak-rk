@@ -10,8 +10,8 @@ def generate_embeddings(input_json, output_json, batch_size=128, task="text-matc
     with open(input_json, 'r', encoding='utf-8') as f:
         data = json.load(f)
     
-    texts = [item['text'] for item in data]
-    file_paths = [item['file_path'] for item in data]
+    texts = [item['caption'] for item in data]
+    file_paths = [item['image_path'] for item in data]
     labels = [item['label'] for item in data]
     
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -39,8 +39,8 @@ def generate_embeddings(input_json, output_json, batch_size=128, task="text-matc
         
         for file_path, embedding, label in zip(batch_file_paths, batch_embeddings, batch_labels):
             embeddings_list.append({
-                "file_path": file_path,
-                "embedding": embedding.tolist(),  
+                "image_path": file_path,
+                "caption_embedding": embedding.tolist(),  
                 "label": label
             })
     
