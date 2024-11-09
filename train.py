@@ -249,7 +249,8 @@ def train(model, optimizer, criterion, scheduler, train_loader, test_loader, num
         train_loss = 0
 
         train_loader_tqdm = tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs} - Training")
-
+        train_embeddings = []
+        train_labels = []
         for imgs, labels in train_loader_tqdm:
             imgs, labels = imgs.to(device), labels.to(device)
 
@@ -262,6 +263,9 @@ def train(model, optimizer, criterion, scheduler, train_loader, test_loader, num
             optimizer.step()
             train_loss += loss.item()
 
+            train_embeddings.append(embeddings.cpu())
+            train_labels.append(labels.cpu())
+
             train_loader_tqdm.set_postfix(loss=loss.item())
 
         train_embeddings = torch.cat(train_embeddings)
@@ -271,6 +275,9 @@ def train(model, optimizer, criterion, scheduler, train_loader, test_loader, num
         model.eval()
         val_loss = 0
 
+
+        val_embeddings = []
+        val_labels = []
         test_loader_tqdm = tqdm(test_loader, desc=f"Epoch {epoch+1}/{num_epochs} - Validation")
 
         with torch.no_grad():
@@ -281,6 +288,9 @@ def train(model, optimizer, criterion, scheduler, train_loader, test_loader, num
 
                 loss = criterion(labels, embeddings)
                 val_loss += loss.item()
+
+                val_embeddings.append(embeddings.cpu())
+                val_labels.append(labels.cpu())
 
                 test_loader_tqdm.set_postfix(loss=loss.item())
 
@@ -364,6 +374,9 @@ if __name__ == "__main__":
     for param in base_model.parameters():
         param.requires_grad = False
 
+    for param in base_model.transformer.resblocks[-1].parameters():
+        param.requires_grad = True
+
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using {device} device")
@@ -377,8 +390,11 @@ if __name__ == "__main__":
 
 
     model = ImageProjectionModel(base_model, projection_dim=64).to(device)
-    optimizer = optim.Adam(model.projection_head.parameters(), lr=1e-4)
-    criterion = TripletLoss(margin=0.05, difficulty=Difficulty.Hard, cosine=True)
+    optimizer = optim.Adam([
+        {'params': model.projection_head.parameters(), 'lr': 1e-4},
+        {'params': base_model.transformer.resblocks[-1].parameters(), 'lr': 1e-5}
+    ])
+    criterion = TripletLoss(margin=0.5, difficulty=Difficulty.Hard, cosine=True)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=2, gamma=0.1)
     model.to(device)
 
