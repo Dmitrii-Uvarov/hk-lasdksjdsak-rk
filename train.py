@@ -531,7 +531,7 @@ if __name__ == "__main__":
     parser.add_argument("--image_dir", type=str, default="../sekrrno/dataset", help="image dir")
     parser.add_argument("--epochs_dir", type=str, default="./epochs", help="epochs dir")
     parser.add_argument("--embedding_size", type=int, default=32, help="embedding size")
-    parser.add_argument("--m_per_batch_size", type=int, default=16, help="m_per_batch_size")
+    parser.add_argument("--m_per_batch_size", type=int, default=4, help="m_per_batch_size")
     parser.add_argument("--batch_size", type=int, default=256, help="batch size")
 
     args = parser.parse_args()
@@ -545,10 +545,10 @@ if __name__ == "__main__":
 
     transform = transforms.Compose([
         transforms.Resize((224, 224)),
-        transforms.RandomResizedCrop(224, scale=(0.8, 1.0), ratio=(0.75, 1.33)),
+        # transforms.RandomResizedCrop(224, scale=(0.8, 1.0), ratio=(0.75, 1.33)),
         transforms.RandomHorizontalFlip(),
         transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.1),
-        transforms.RandomRotation(degrees=10),
+        # transforms.RandomRotation(degrees=10),
         transforms.ToTensor()
     ])
 
@@ -579,8 +579,8 @@ if __name__ == "__main__":
 
     sampler = MPerClassSampler(train_labels, m=args.m_per_batch_size, length_before_new_iter=len(train_labels))
 
-    trunk_optimizer = torch.optim.Adam(trunk.parameters(), lr=1e-5, weight_decay=1e-5)
-    embedder_optimizer = torch.optim.Adam(embedder.parameters(), lr=1e-4, weight_decay=1e-5)
+    trunk_optimizer = torch.optim.Adam(trunk.parameters(), lr=5e-5, weight_decay=1e-5)
+    embedder_optimizer = torch.optim.Adam(embedder.parameters(), lr=5e-4, weight_decay=1e-5)
 
     models = {'trunk': trunk, 'embedder': embedder}
     optimizers = {'trunk_optimizer': trunk_optimizer, 'embedder_optimizer': embedder_optimizer}
@@ -588,16 +588,13 @@ if __name__ == "__main__":
         'metric_loss': metric_loss
     }
 
-    loss_weights = {
-        'metric_loss': 1.0 
-    }
     mining_funcs = {'tuple_miner': miner}
 
     num_classes = len(set(train_labels))
 
     classifier = nn.DataParallel(Classifier(embedding_dim=args.embedding_size, num_classes=num_classes)).to(device)  
 
-    classifier_optimizer = torch.optim.Adam(classifier.parameters(), lr=1e-4, weight_decay=1e-5)
+    classifier_optimizer = torch.optim.Adam(classifier.parameters(), lr=5e-4, weight_decay=1e-5)
 
     optimizers['classifier_optimizer'] = classifier_optimizer
 
@@ -624,7 +621,7 @@ if __name__ == "__main__":
     )
 
 
-    num_epochs = 10
+    num_epochs = 3
     trainer.train(num_epochs=num_epochs)
 
     knn_func = FaissKNN()
