@@ -637,9 +637,9 @@ if __name__ == "__main__":
     classifier_scheduler = lr_scheduler.StepLR(classifier_optimizer, step_size=2, gamma=0.1)
 
     schedulers = {
-        'trunk_scheduler': trunk_scheduler,
-        'embedder_scheduler': embedder_scheduler,
-        'classifier_scheduler': classifier_scheduler
+        'trunk_scheduler_by_epoch': trunk_scheduler,
+        'embedder_scheduler_by_epoch': embedder_scheduler,
+        'classifier_scheduler_by_epoch': classifier_scheduler
     }
 
     optimizers['classifier_optimizer'] = classifier_optimizer
