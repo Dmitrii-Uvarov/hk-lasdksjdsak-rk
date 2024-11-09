@@ -523,6 +523,41 @@ def create_directory_if_not_exists(directory_path):
     else:
         print(f"Directory '{directory_path}' already exists.")
 
+def save_checkpoint(models, optimizers, epoch, epochs_dir):
+    """Save model and optimizer states."""
+    checkpoint = {
+        'epoch': epoch,
+        'trunk_state_dict': models['trunk'].state_dict(),
+        'embedder_state_dict': models['embedder'].state_dict(),
+        'classifier_state_dict': models['classifier'].state_dict(),
+        'trunk_optimizer_state_dict': optimizers['trunk_optimizer'].state_dict(),
+        'embedder_optimizer_state_dict': optimizers['embedder_optimizer'].state_dict(),
+        'classifier_optimizer_state_dict': optimizers['classifier_optimizer'].state_dict(),
+    }
+    checkpoint_path = os.path.join(epochs_dir, f'checkpoint_epoch_{epoch}.pth')
+    torch.save(checkpoint, checkpoint_path)
+    print(f"Checkpoint saved: {checkpoint_path}")
+
+def load_last_checkpoint(models, optimizers, epochs_dir):
+    """Load the last checkpoint if available."""
+    checkpoint_files = [f for f in os.listdir(epochs_dir) if f.startswith('checkpoint_epoch_')]
+    if not checkpoint_files:
+        print("No checkpoint found.")
+        return 0
+
+    last_checkpoint = max(checkpoint_files, key=lambda f: int(f.split('_')[-1].split('.')[0]))
+    checkpoint_path = os.path.join(epochs_dir, last_checkpoint)
+    print(f"Loading checkpoint: {checkpoint_path}")
+
+    checkpoint = torch.load(checkpoint_path)
+    models['trunk'].load_state_dict(checkpoint['trunk_state_dict'])
+    models['embedder'].load_state_dict(checkpoint['embedder_state_dict'])
+    models['classifier'].load_state_dict(checkpoint['classifier_state_dict'])
+    optimizers['trunk_optimizer'].load_state_dict(checkpoint['trunk_optimizer_state_dict'])
+    optimizers['embedder_optimizer'].load_state_dict(checkpoint['embedder_optimizer_state_dict'])
+    optimizers['classifier_optimizer'].load_state_dict(checkpoint['classifier_optimizer_state_dict'])
+    return checkpoint['epoch'] + 1
+
 
 if __name__ == "__main__":
     import argparse
@@ -533,6 +568,7 @@ if __name__ == "__main__":
     parser.add_argument("--embedding_size", type=int, default=64, help="embedding size")
     parser.add_argument("--m_per_batch_size", type=int, default=4, help="m_per_batch_size")
     parser.add_argument("--batch_size", type=int, default=256, help="batch size")
+    parser.add_argument("--load_last", type=bool, default=True, help="load last")
 
     args = parser.parse_args()
 
@@ -621,27 +657,26 @@ if __name__ == "__main__":
     )
 
 
+    start_epoch = 0
+    if args.load_last:
+        start_epoch = load_last_checkpoint(models, optimizers, epochs_dir)
+
     num_epochs = 3
-    trainer.train(num_epochs=num_epochs)
+    for epoch in range(start_epoch, num_epochs):
+        print(f"Starting epoch {epoch}/{num_epochs}")
+        trainer.train(num_epochs=1)
+        save_checkpoint(models, optimizers, epoch, epochs_dir)
 
-    knn_func = FaissKNN()
+    accuracy_calculator = AccuracyCalculator(include=('mean_average_precision',), k=10, knn_func=FaissKNN())
+    tester = testers.GlobalEmbeddingSpaceTester(dataloader_num_workers=4, accuracy_calculator=accuracy_calculator)
+    dataset_dict = {"test": test_dataset}
 
-    accuracy_calculator = AccuracyCalculator(
-        include=('mean_average_precision',), k=10, knn_func=knn_func
-    )
-    tester = testers.GlobalEmbeddingSpaceTester(
-        dataloader_num_workers=4,
-        accuracy_calculator=accuracy_calculator
-    )
-    # dataset_dict = {"train": train_dataset, "test": test_dataset}
-    dataset_dict = { "test": test_dataset}
     print(tester.test(
-        trunk_model = trunk,
-        embedder_model=embedder,
+        trunk_model=models['trunk'],
+        embedder_model=models['embedder'],
         dataset_dict=dataset_dict,
         epoch=0
     ))
-
 
     # from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
