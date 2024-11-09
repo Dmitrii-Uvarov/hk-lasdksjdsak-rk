@@ -603,9 +603,6 @@ if __name__ == "__main__":
     trunk = ViTModel.from_pretrained('facebook/dino-vits16')
     trunk_output_size = trunk.config.hidden_size
 
-    for param in trunk.parameters():
-        param.requires_grad = True
-
     trunk = nn.DataParallel(trunk).to(device)
     image_processor = ViTImageProcessor.from_pretrained('facebook/dino-vits16')
 
@@ -624,7 +621,7 @@ if __name__ == "__main__":
 
     metric_loss = losses.TripletMarginLoss(margin=0.2, distance=CosineSimilarity())
 
-    miner = miners.TripletMarginMiner(margin=0.3, type_of_triplets='semihard')
+    miner = miners.TripletMarginMiner(margin=0.1, type_of_triplets='semihard')
 
     sampler = MPerClassSampler(train_labels, m=args.m_per_batch_size, length_before_new_iter=len(train_labels))
 
