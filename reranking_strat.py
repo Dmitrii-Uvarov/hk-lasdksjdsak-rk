@@ -21,9 +21,9 @@ def compute_embeddings(model, dataloader, device):
     with torch.no_grad():
         for images, _ in dataloader:
             images = images.to(device)
-            emb = model(images)
-            # If emb has an extra dimension, flatten it
-            emb = emb.view(images.size(0), -1)  # Flatten to shape (batch_size, embedding_size)
+            img_feat = models['trunk'](images)
+            emb = models['embedder'](img_feat)
+            emb = emb.view(images.size(0), -1)
             embeddings.append(emb.cpu().numpy())
     return np.vstack(embeddings)
 
