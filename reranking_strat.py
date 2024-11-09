@@ -1,7 +1,7 @@
 import os
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader, random_split, Dataset
 from torchvision import transforms
 from PIL import Image
 from transformers import ViTModel, ViTImageProcessor, CLIPProcessor, CLIPModel
