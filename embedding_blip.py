@@ -4,6 +4,7 @@ import argparse
 import torch
 from transformers import AutoModel
 from tqdm import tqdm
+import torch.nn.functional as F
 
 def generate_embeddings(input_json, output_json, batch_size=1024, task="text-matching"):
 
@@ -31,7 +32,8 @@ def generate_embeddings(input_json, output_json, batch_size=1024, task="text-mat
         print(f"Processing batch {i} to {i + len(batch_texts)}")
         
         with torch.no_grad():
-            batch_embeddings = model.encode(batch_texts, task=task)
+            batch_embeddings = model.encode(batch_texts, task=task, truncate_dim=512)
+            embeddings = F.normalize(embeddings, p=2, dim=1)
             if isinstance(batch_embeddings, torch.Tensor):
                 batch_embeddings = batch_embeddings.cpu().numpy()
             else:
