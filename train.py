@@ -376,10 +376,12 @@ if __name__ == "__main__":
 
     
 
-    n_layers_to_unfreeze = 2 
-    layers = list(base_model.visual.children())
-    for layer in layers[-n_layers_to_unfreeze:]:
-        for param in layer.parameters():
+    n_blocks_to_unfreeze = 2 
+
+    blocks = base_model.vision_model.blocks
+
+    for block in blocks[-n_blocks_to_unfreeze:]:
+        for param in block.parameters():
             param.requires_grad = True
 
 
@@ -395,16 +397,12 @@ if __name__ == "__main__":
 
 
     model = ImageProjectionModel(base_model, projection_dim=64).to(device)
-    base_params = []
-    for name, param in base_model.named_parameters():
-        if param.requires_grad:
-            base_params.append(param)
-
-    proj_params = model.projection_head.parameters()
+    base_model_params = [param for param in base_model.parameters() if param.requires_grad]
+    projection_head_params = model.projection_head.parameters()
 
     optimizer = optim.Adam([
-        {'params': proj_params, 'lr': 1e-4},
-        {'params': base_params, 'lr': 1e-5}
+        {'params': projection_head_params, 'lr': 1e-4},
+        {'params': base_model_params, 'lr': 1e-5}  
     ])
     criterion = TripletLoss(margin=0.5, difficulty=Difficulty.Hard, cosine=True)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=2, gamma=0.1)
