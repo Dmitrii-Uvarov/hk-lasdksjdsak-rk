@@ -138,7 +138,7 @@ if __name__ == "__main__":
 
     models = {'trunk': trunk, 'embedder': embedder}
 
-    load_last_checkpoint(models, '~/environments/hack/hk-lasdksjdsak-rk/checkpoint_epoch_26.pth')
+    load_last_checkpoint(models, 'checkpoint_epoch_26.pth')
 
     train_size = int(0.8 * len(dataset))
     test_size = len(dataset) - train_size
