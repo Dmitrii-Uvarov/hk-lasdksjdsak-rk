@@ -576,7 +576,7 @@ if __name__ == "__main__":
     epochs_dir = args.epochs_dir
     create_directory_if_not_exists(epochs_dir)
     output_file = "image_labels.txt"
-    create_image_label_txt(image_dir, output_file)
+    # create_image_label_txt(image_dir, output_file)
 
 
     # transform = transforms.Compose([
