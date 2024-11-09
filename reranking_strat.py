@@ -15,7 +15,8 @@ from typing import List
 
 
 def compute_embeddings(model, dataloader, device):
-    model.eval()
+    models['embedder'].eval()
+    models['trunk'].eval()
     embeddings = []
     with torch.no_grad():
         for images, _ in dataloader:
