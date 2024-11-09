@@ -180,7 +180,7 @@ if __name__ == "__main__":
         top10_images = rerank_with_clip(
             os.path.join(image_dir, query_img_path),
             candidate_paths, clip_model, clip_processor, device)
-        reranked_top10.append([test_labels.index(img.replace(image_dir, "")) for img in top10_images])
+        reranked_top10.append([test_labels.index(img.replace(image_dir+'/', "")) for img in top10_images])
 
     map_reranked = mean_average_precision_at_k(test_labels, reranked_top10)
 
