@@ -36,8 +36,11 @@ def create_image_label_txt(image_dir, output_file):
                 if image_name.endswith(('.jpg', '.jpeg', '.png')):
                     file.write(f"{os.path.join(folder, image_name)};{label}\n")
 
+
 LOGGER_NAME = "PML"
 LOGGER = logging.getLogger(LOGGER_NAME)
+
+
 def try_gpu(index, query, reference, k, is_cuda, gpus):
     # https://github.com/facebookresearch/faiss/blob/master/faiss/gpu/utils/DeviceDefs.cuh
     gpu_index = None
@@ -57,6 +60,7 @@ def try_gpu(index, query, reference, k, is_cuda, gpus):
         cpu_index = convert_to_cpu_index(index)
         return add_to_index_and_search(cpu_index, query, reference, k)
 
+
 def convert_to_gpu_index(index, gpus):
     if "Gpu" in str(type(index)):
         return index
@@ -70,10 +74,12 @@ def convert_to_cpu_index(index):
         return index
     return faiss.index_gpu_to_cpu(index)
 
+
 def add_to_index_and_search(index, query, reference, k):
     if reference is not None:
         index.add(reference.float().cpu())
     return index.search(query.float().cpu(), k)
+
 
 class FaissKNN:
     def __init__(self, reset_before=True, reset_after=True, index_init_fn=None, gpus=None):
@@ -121,11 +127,13 @@ class FaissKNN:
     def reset(self):
         self.index = None
 
+
 def numpy_to_torch(v):
     try:
         return torch.from_numpy(v)
     except TypeError:
         return v
+
 
 def to_dtype(x, tensor=None, dtype=None):
     if not torch.is_autocast_enabled():
@@ -138,13 +146,14 @@ def to_dtype(x, tensor=None, dtype=None):
 def to_device(x, tensor=None, device=None, dtype=None):
     dv = device if device is not None else tensor.device
     if isinstance(x, np.ndarray):
-        x = torch.from_numpy(x)  
-        x = x.to(dv)  
+        x = torch.from_numpy(x)
+        x = x.to(dv)
     if x.device != dv:
         x = x.to(dv)
     if dtype is not None:
         x = to_dtype(x, dtype=dtype)
     return x
+
 
 def return_results(D, I, ref_includes_query):
     if ref_includes_query:
@@ -159,6 +168,8 @@ def return_results(D, I, ref_includes_query):
         I = mask_reshape_knn_idx(I, matches_self_idx)
         D = mask_reshape_knn_idx(D, matches_self_idx)
     return D, I
+
+
 def mask_reshape_knn_idx(x, matches_self_idx):
     return x[~matches_self_idx].view(x.shape[0], -1)
 
@@ -267,8 +278,6 @@ def mask_reshape_knn_idx(x, matches_self_idx):
 #         return self.efficient_net(x)
 
 
-
-
 class Difficulty(Enum):
     Easy = 1        # A - P < A - N
     SemiHard = 2    # min(A - N)
@@ -288,7 +297,7 @@ def _get_anchor_negative_triplet_mask(labels):
 
 def _pairwise_distances(embeddings, squared=False, cosine=False):
     dot_product = torch.matmul(embeddings, embeddings.t())
-    if cosine: # Cosine range is -1 to 1. 1 - similarity makes 0 be closest, 2 = furthest
+    if cosine:  # Cosine range is -1 to 1. 1 - similarity makes 0 be closest, 2 = furthest
         norm = torch.norm(embeddings, dim=1, keepdim=True)
         similarity = dot_product / torch.matmul(norm, norm.t())
         return 1 - similarity
@@ -378,7 +387,6 @@ class TripletLoss(torch.nn.Module):
         num_positives = torch.sum(mask_positives)
         triplet_loss = torch.sum(torch.clamp(loss_mat * mask_positives, min=0.0)) / (num_positives + 1e-8)
         return triplet_loss
-    
 
 
 class ImageLabelDataset(Dataset):
@@ -406,7 +414,7 @@ class ImageLabelDataset(Dataset):
         image = self.image_preprocessor(images=image, return_tensors='pt')['pixel_values'].squeeze(0)
 
         return image, label
-    
+
 
 class Embedder(nn.Module):
     def __init__(self, input_dim, embedding_dim):
@@ -418,15 +426,16 @@ class Embedder(nn.Module):
         )
 
     def forward(self, x):
-        return self.projection_head(x.last_hidden_state[:, 0, :])  
+        return self.projection_head(x.last_hidden_state[:, 0, :])
+
 
 class Classifier(nn.Module):
     def __init__(self, embedding_dim, num_classes):
         super(Classifier, self).__init__()
         self.classifier = nn.Sequential(
-            nn.Linear(embedding_dim, 128),  
-            nn.ReLU(),                      
-            nn.Linear(128, num_classes)     
+            nn.Linear(embedding_dim, 128),
+            nn.ReLU(),
+            nn.Linear(128, num_classes)
         )
 
     def forward(self, x):
@@ -516,13 +525,13 @@ class Classifier(nn.Module):
 #         print(f"MAP@10: {map10:.4f}")
 
 
-
 def create_directory_if_not_exists(directory_path):
     if not os.path.exists(directory_path):
         os.makedirs(directory_path)
         print(f"Directory '{directory_path}' created.")
     else:
         print(f"Directory '{directory_path}' already exists.")
+
 
 def save_checkpoint(models, optimizers, epoch, epochs_dir):
     """Save model and optimizer states."""
@@ -538,6 +547,7 @@ def save_checkpoint(models, optimizers, epoch, epochs_dir):
     checkpoint_path = os.path.join(epochs_dir, f'checkpoint_epoch_{epoch}.pth')
     torch.save(checkpoint, checkpoint_path)
     print(f"Checkpoint saved: {checkpoint_path}")
+
 
 def load_last_checkpoint(models, optimizers, epochs_dir):
     """Load the last checkpoint if available."""
@@ -565,9 +575,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Training script for a neural network")
 
     parser.add_argument("--image_dir", type=str, default="../sekrrno/dataset", help="image dir")
-    parser.add_argument("--epochs_dir", type=str, default="./epochs", help="epochs dir")
+    parser.add_argument("--epochs_dir", type=str, default="./epochs_new_night", help="epochs dir")
     parser.add_argument("--embedding_size", type=int, default=64, help="embedding size")
-    parser.add_argument("--m_per_batch_size", type=int, default=2, help="m_per_batch_size")
+    parser.add_argument("--m_per_batch_size", type=int, default=4, help="m_per_batch_size")
     parser.add_argument("--batch_size", type=int, default=512, help="batch size")
     parser.add_argument("--load_last", type=bool, default=True, help="load last")
 
@@ -578,7 +588,6 @@ if __name__ == "__main__":
     create_directory_if_not_exists(epochs_dir)
     output_file = "image_labels.txt"
     # create_image_label_txt(image_dir, output_file)
-
 
     transform = transforms.Compose([
         # transforms.Resize((224, 224)),
@@ -592,27 +601,27 @@ if __name__ == "__main__":
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     trunk = ViTModel.from_pretrained('facebook/dino-vits16')
-    trunk_output_size = trunk.config.hidden_size  
+    trunk_output_size = trunk.config.hidden_size
 
     trunk = nn.DataParallel(trunk).to(device)
     image_processor = ViTImageProcessor.from_pretrained('facebook/dino-vits16')
 
-    dataset = ImageLabelDataset(image_preprocessor=image_processor, image_dir=image_dir, txt_file=output_file)#, transform=transform)
+    dataset = ImageLabelDataset(image_preprocessor=image_processor, image_dir=image_dir,
+                                txt_file=output_file, transform=transform)
 
     embedder = nn.DataParallel(Embedder(input_dim=trunk_output_size, embedding_dim=args.embedding_size)).to(device)
 
-    train_size = int(0.8 * len(dataset))  
-    test_size = len(dataset) - train_size  
+    train_size = int(0.8 * len(dataset))
+    test_size = len(dataset) - train_size
 
     train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
 
     train_labels = [dataset.image_label_list[idx][1] for idx in train_dataset.indices]
     test_labels = [dataset.image_label_list[idx][1] for idx in test_dataset.indices]
 
+    metric_loss = losses.TripletMarginLoss(margin=0.2, distance=CosineSimilarity())
 
-    metric_loss = losses.TripletMarginLoss(margin=0.2, distance=CosineSimilarity())  
-
-    miner = miners.TripletMarginMiner(margin=0.5, type_of_triplets='semihard')
+    miner = miners.TripletMarginMiner(margin=0.3, type_of_triplets='semihard')
 
     sampler = MPerClassSampler(train_labels, m=args.m_per_batch_size, length_before_new_iter=len(train_labels))
 
@@ -629,7 +638,7 @@ if __name__ == "__main__":
 
     num_classes = len(set(train_labels))
 
-    classifier = nn.DataParallel(Classifier(embedding_dim=args.embedding_size, num_classes=num_classes)).to(device)  
+    classifier = nn.DataParallel(Classifier(embedding_dim=args.embedding_size, num_classes=num_classes)).to(device)
 
     classifier_optimizer = torch.optim.Adam(classifier.parameters(), lr=1e-4, weight_decay=1e-5)
     trunk_scheduler = lr_scheduler.StepLR(trunk_optimizer, step_size=2, gamma=0.1)
@@ -649,7 +658,7 @@ if __name__ == "__main__":
 
     loss_weights = {'metric_loss': 1.0, 'classifier_loss': 1.0}
 
-    batch_size=args.batch_size
+    batch_size = args.batch_size
 
     models['classifier'] = classifier
 
@@ -667,12 +676,11 @@ if __name__ == "__main__":
         data_device=device,
     )
 
-
     start_epoch = 0
     if args.load_last:
         start_epoch = load_last_checkpoint(models, optimizers, epochs_dir)
 
-    num_epochs = 27
+    num_epochs = 5
     for epoch in range(start_epoch, num_epochs):
         print(f"Starting epoch {epoch}/{num_epochs}")
         trainer.train(num_epochs=1)
