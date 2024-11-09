@@ -5,6 +5,12 @@ import torch
 from transformers import AutoModel
 from tqdm import tqdm
 import torch.nn.functional as F
+import numpy as np
+
+def normalize_embeddings(batch_embeddings, p=2, axis=1):
+    norm = np.linalg.norm(batch_embeddings, ord=p, axis=axis, keepdims=True)
+    normalized_embeddings = batch_embeddings / (norm + 1e-12)  # Adding a small epsilon to prevent division by zero
+    return normalized_embeddings
 
 def generate_embeddings(input_json, output_json, batch_size=1024, task="text-matching"):
 
@@ -33,7 +39,7 @@ def generate_embeddings(input_json, output_json, batch_size=1024, task="text-mat
         
         with torch.no_grad():
             batch_embeddings = model.encode(batch_texts, task=task, truncate_dim=512)
-            batch_embeddings = F.normalize(batch_embeddings, p=2, dim=1)
+            batch_embeddings = normalize_embeddings(batch_embeddings)
             if isinstance(batch_embeddings, torch.Tensor):
                 batch_embeddings = batch_embeddings.cpu().numpy()
             else:
