@@ -578,7 +578,7 @@ if __name__ == "__main__":
     parser.add_argument("--epochs_dir", type=str, default="./epochs_new_night", help="epochs dir")
     parser.add_argument("--embedding_size", type=int, default=64, help="embedding size")
     parser.add_argument("--m_per_batch_size", type=int, default=4, help="m_per_batch_size")
-    parser.add_argument("--batch_size", type=int, default=512, help="batch size")
+    parser.add_argument("--batch_size", type=int, default=256, help="batch size")
     parser.add_argument("--load_last", type=bool, default=True, help="load last")
 
     args = parser.parse_args()
@@ -619,13 +619,13 @@ if __name__ == "__main__":
     train_labels = [dataset.image_label_list[idx][1] for idx in train_dataset.indices]
     test_labels = [dataset.image_label_list[idx][1] for idx in test_dataset.indices]
 
-    metric_loss = losses.TripletMarginLoss(margin=0.5, distance=CosineSimilarity())
+    metric_loss = losses.TripletMarginLoss(margin=0.2, distance=CosineSimilarity())
 
-    miner = miners.TripletMarginMiner(margin=0.4, type_of_triplets='semihard')
+    miner = miners.TripletMarginMiner(margin=0.3, type_of_triplets='semihard')
 
     sampler = MPerClassSampler(train_labels, m=args.m_per_batch_size, length_before_new_iter=len(train_labels))
 
-    trunk_optimizer = torch.optim.Adam(trunk.parameters(), lr=1e-5, weight_decay=1e-5)
+    trunk_optimizer = torch.optim.Adam(trunk.parameters(), lr=5e-5, weight_decay=1e-5)
     embedder_optimizer = torch.optim.Adam(embedder.parameters(), lr=1e-4, weight_decay=1e-5)
 
     models = {'trunk': trunk, 'embedder': embedder}
