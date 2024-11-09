@@ -29,10 +29,17 @@ def compute_embeddings(model, dataloader, device):
 # Function to perform k-NN search
 
 
-def get_top_k_neighbors(embeddings, k=50):
-    knn = NearestNeighbors(n_neighbors=k, metric='cosine').fit(embeddings)
-    distances, indices = knn.kneighbors(embeddings)
-    return indices
+def find_top_k(train_embeddings, test_embeddings, k=50):
+    top_k_indices = []
+    for test_emb in test_embeddings:
+        # Compute cosine similarity between the test embedding and all train embeddings
+        similarities = np.dot(train_embeddings, test_emb) / (
+            np.linalg.norm(train_embeddings, axis=1) * np.linalg.norm(test_emb)
+        )
+        # Get the indices of the top k most similar embeddings
+        top_k = np.argsort(similarities)[-k:][::-1]
+        top_k_indices.append(top_k)
+    return top_k_indices
 
 # Function to rerank using CLIP
 
@@ -152,19 +159,21 @@ if __name__ == "__main__":
     train_loader = DataLoader(train_dataset, batch_size=256, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=256, shuffle=False)
 
-    train_embeddings = compute_embeddings(models, train_loader, device)
+    # train_embeddings = compute_embeddings(models, train_loader, device)
     test_embeddings = compute_embeddings(models, test_loader, device)
+    print('embedded')
 
-    top50_indices = get_top_k_neighbors(train_embeddings, k=50)
+    top50_indices = find_top_k(test_embeddings, test_embeddings, k=50)
+    print('top50')
 
     clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(device)
     clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
 
     reranked_top10 = []
     for i, (query_img_path, label) in enumerate(test_dataset.image_label_list):
-        candidate_paths = [train_dataset.image_label_list[idx][0] for idx in top50_indices[i]]
+        candidate_paths = [test_dataset.image_label_list[idx][0] for idx in top50_indices[i]]
         top10_images = rerank_with_clip(query_img_path, candidate_paths, clip_model, clip_processor, device)
-        reranked_top10.append([train_dataset.image_label_list.index(img) for img in top10_images])
+        reranked_top10.append([test_dataset.image_label_list.index(img) for img in top10_images])
 
     map_reranked = mean_average_precision_at_k(test_labels, reranked_top10)
 
