@@ -38,7 +38,7 @@ def generate_embeddings(input_json, output_json, batch_size=1024, task="text-mat
         print(f"Processing batch {i} to {i + len(batch_texts)}")
         
         with torch.no_grad():
-            batch_embeddings = model.encode(batch_texts, task=task, truncate_dim=512)
+            batch_embeddings = model.encode(batch_texts, task=task, truncate_dim=128)
             batch_embeddings = normalize_embeddings(batch_embeddings)
             if isinstance(batch_embeddings, torch.Tensor):
                 batch_embeddings = batch_embeddings.cpu().numpy()
