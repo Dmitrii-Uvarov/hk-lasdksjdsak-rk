@@ -681,7 +681,7 @@ if __name__ == "__main__":
     if args.load_last:
         start_epoch = load_last_checkpoint(models, optimizers, epochs_dir)
 
-    num_epochs = 9
+    num_epochs = 13
     for epoch in range(start_epoch, num_epochs):
         print(f"Starting epoch {epoch}/{num_epochs}")
         trainer.train(num_epochs=1)
