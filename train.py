@@ -607,7 +607,7 @@ if __name__ == "__main__":
     image_processor = ViTImageProcessor.from_pretrained('facebook/dino-vits16')
 
     dataset = ImageLabelDataset(image_preprocessor=image_processor, image_dir=image_dir,
-                                txt_file=output_file, transform=transform)
+                                txt_file=output_file)  # , transform=transform)
 
     embedder = nn.DataParallel(Embedder(input_dim=trunk_output_size, embedding_dim=args.embedding_size)).to(device)
 
