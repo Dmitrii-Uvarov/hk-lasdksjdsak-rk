@@ -594,7 +594,7 @@ if __name__ == "__main__":
         # transforms.RandomResizedCrop(224, scale=(0.8, 1.0), ratio=(0.75, 1.33)),
         transforms.RandomHorizontalFlip(),
         transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.1),
-        transforms.RandomRotation(degrees=10),
+        # transforms.RandomRotation(degrees=10),
         # transforms.ToTensor()
     ])
 
