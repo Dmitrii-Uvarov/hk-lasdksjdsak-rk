@@ -544,7 +544,7 @@ if __name__ == "__main__":
 
 
     transform = transforms.Compose([
-        transforms.Resize((224, 224)),
+        # transforms.Resize((224, 224)),
         # transforms.RandomResizedCrop(224, scale=(0.8, 1.0), ratio=(0.75, 1.33)),
         # transforms.RandomHorizontalFlip(),
         # transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.1),
@@ -579,8 +579,8 @@ if __name__ == "__main__":
 
     sampler = MPerClassSampler(train_labels, m=args.m_per_batch_size, length_before_new_iter=len(train_labels))
 
-    trunk_optimizer = torch.optim.Adam(trunk.parameters(), lr=5e-5, weight_decay=1e-5)
-    embedder_optimizer = torch.optim.Adam(embedder.parameters(), lr=5e-4, weight_decay=1e-5)
+    trunk_optimizer = torch.optim.Adam(trunk.parameters(), lr=5e-4, weight_decay=1e-5)
+    embedder_optimizer = torch.optim.Adam(embedder.parameters(), lr=5e-3, weight_decay=1e-5)
 
     models = {'trunk': trunk, 'embedder': embedder}
     optimizers = {'trunk_optimizer': trunk_optimizer, 'embedder_optimizer': embedder_optimizer}
@@ -594,7 +594,7 @@ if __name__ == "__main__":
 
     classifier = nn.DataParallel(Classifier(embedding_dim=args.embedding_size, num_classes=num_classes)).to(device)  
 
-    classifier_optimizer = torch.optim.Adam(classifier.parameters(), lr=5e-4, weight_decay=1e-5)
+    classifier_optimizer = torch.optim.Adam(classifier.parameters(), lr=5e-3, weight_decay=1e-5)
 
     optimizers['classifier_optimizer'] = classifier_optimizer
 
