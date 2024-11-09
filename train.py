@@ -625,7 +625,7 @@ if __name__ == "__main__":
 
     sampler = MPerClassSampler(train_labels, m=args.m_per_batch_size, length_before_new_iter=len(train_labels))
 
-    trunk_optimizer = torch.optim.Adam(trunk.parameters(), lr=1e-7, weight_decay=1e-5)
+    trunk_optimizer = torch.optim.Adam(trunk.parameters(), lr=1e-5, weight_decay=1e-5)
     embedder_optimizer = torch.optim.Adam(embedder.parameters(), lr=1e-4, weight_decay=1e-5)
 
     models = {'trunk': trunk, 'embedder': embedder}
@@ -656,7 +656,7 @@ if __name__ == "__main__":
     classification_loss = nn.CrossEntropyLoss()
     loss_funcs['classifier_loss'] = classification_loss
 
-    loss_weights = {'metric_loss': 1.0, 'classifier_loss': 4.0}
+    loss_weights = {'metric_loss': 1.0, 'classifier_loss': 2.0}
 
     batch_size = args.batch_size
 
