@@ -156,8 +156,8 @@ if __name__ == "__main__":
 
     train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
 
-    train_labels = [dataset.image_label_list[idx][1] for idx in train_dataset.indices]
-    test_labels = [dataset.image_label_list[idx][1] for idx in test_dataset.indices]
+    train_labels = [dataset.image_label_list[idx] for idx in train_dataset.indices]
+    test_labels = [dataset.image_label_list[idx] for idx in test_dataset.indices]
 
     train_loader = DataLoader(train_dataset, batch_size=256, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=256, shuffle=False)
