@@ -709,7 +709,6 @@ if __name__ == "__main__":
     for epoch in range(start_epoch, num_epochs):
         print(f"Starting epoch {epoch}/{num_epochs}")
 
-        # Training phase
         models['trunk'].train()
         models['embedder'].train()
         models['classifier'].train()
@@ -724,19 +723,17 @@ if __name__ == "__main__":
             labels = labels.to(device)
             target_embeddings = target_embeddings.to(device)
 
-            # Zero the gradients
             for optimizer in optimizers.values():
                 optimizer.zero_grad()
 
-            # Forward pass
             trunk_output = models['trunk'](images)
             embeddings = models['embedder'](trunk_output)
             logits = models['classifier'](embeddings)
 
-            # Compute losses
             metric_loss = loss_funcs['metric_loss'](embeddings, labels)
             classifier_loss = loss_funcs['classifier_loss'](logits, labels)
-            embedding_loss = loss_funcs['embedding_loss'](embeddings, target_embeddings)
+            cosine_similarity = torch.nn.functional.cosine_similarity(target_embeddings[0::2], target_embeddings[1::2], dim=1)
+            embedding_loss = 1 - cosine_similarity.mean()
 
             total_loss = (
                 loss_weights['metric_loss'] * metric_loss +
@@ -744,7 +741,6 @@ if __name__ == "__main__":
                 loss_weights['embedding_loss'] * embedding_loss
             )
 
-            # Backward pass and optimization
             total_loss.backward()
             for optimizer in optimizers.values():
                 optimizer.step()
@@ -758,11 +754,9 @@ if __name__ == "__main__":
         train_embeddings = torch.cat(train_embeddings)
         train_labels = torch.cat(train_labels)
 
-        # Step the schedulers
         for scheduler in schedulers.values():
             scheduler.step()
 
-        # Validation phase
         models['trunk'].eval()
         models['embedder'].eval()
         models['classifier'].eval()
@@ -778,15 +772,14 @@ if __name__ == "__main__":
                 labels = labels.to(device)
                 target_embeddings = target_embeddings.to(device)
 
-                # Forward pass
                 trunk_output = models['trunk'](images)
                 embeddings = models['embedder'](trunk_output)
                 logits = models['classifier'](embeddings)
 
-                # Compute losses
                 metric_loss = loss_funcs['metric_loss'](embeddings, labels)
                 classifier_loss = loss_funcs['classifier_loss'](logits, labels)
-                embedding_loss = loss_funcs['embedding_loss'](embeddings, target_embeddings)
+                cosine_similarity = torch.nn.functional.cosine_similarity(target_embeddings[0::2], target_embeddings[1::2], dim=1)
+                embedding_loss = 1 - cosine_similarity.mean()
 
                 total_loss = (
                     loss_weights['metric_loss'] * metric_loss +
@@ -803,11 +796,9 @@ if __name__ == "__main__":
         val_embeddings = torch.cat(val_embeddings)
         val_labels = torch.cat(val_labels)
 
-        # Print the average losses
         print(f"Epoch [{epoch+1}/{num_epochs}], Train Loss: {train_loss/len(train_loader)}, Val Loss: {val_loss/len(test_loader)}")
         save_checkpoint(models, optimizers, schedulers, epoch, epochs_dir)
 
-        # Calculate metrics
         matching_ratios = []
         average_precisions = []
 
@@ -815,7 +806,6 @@ if __name__ == "__main__":
             val_emb = val_embeddings[i]
             val_label = val_labels[i]
 
-            # Compute cosine similarities with all train embeddings
             distances = torch.nn.functional.cosine_similarity(train_embeddings, val_emb.unsqueeze(0), dim=1)
             nearest_indices = torch.topk(distances, k=10, largest=False).indices
             nearest_labels = train_labels[nearest_indices]
@@ -829,7 +819,6 @@ if __name__ == "__main__":
             average_precision = sum(precisions) / len(precisions) if precisions else 0
             average_precisions.append(average_precision)
 
-        # Compute average matching ratio and MAP@10
         average_matching_ratio = sum(matching_ratios) / len(matching_ratios)
         map10 = sum(average_precisions) / len(average_precisions)
         print("\nValidation metric based on nearest neighbors:")
