@@ -639,7 +639,7 @@ if __name__ == "__main__":
     loss_weights = {
     'metric_loss': 1.0,
     'classifier_loss': 1.0,
-    'embedding_loss': 1.0  
+    'contrastive_loss': 1.0  
     }
 
     embedding_loss_func = CosineEmbeddingLoss()
