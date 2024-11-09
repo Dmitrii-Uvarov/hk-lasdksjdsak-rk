@@ -617,8 +617,8 @@ if __name__ == "__main__":
 
     train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
 
-    train_labels = [dataset.image_label_list[idx][1] for idx in train_dataset.indices]
-    test_labels = [dataset.image_label_list[idx][1] for idx in test_dataset.indices]
+    train_labels = [dataset.data[idx]['label'] for idx in train_dataset.indices]
+    train_labels = [dataset.data[idx]['label'] for idx in test_dataset.indices]
 
 
     metric_loss = losses.TripletMarginLoss(margin=0.3, distance=CosineSimilarity())  
