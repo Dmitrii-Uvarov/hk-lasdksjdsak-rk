@@ -31,15 +31,17 @@ def compute_embeddings(model, dataloader, device):
 
 
 def find_top_k(train_embeddings, test_embeddings, k=50):
-    top_k_indices = []
-    for test_emb in test_embeddings:
-        # Compute cosine similarity between the test embedding and all train embeddings
-        similarities = np.dot(train_embeddings, test_emb) / (
-            np.linalg.norm(train_embeddings, axis=1) * np.linalg.norm(test_emb)
-        )
-        # Get the indices of the top k most similar embeddings
-        top_k = np.argsort(similarities)[-k:][::-1]
-        top_k_indices.append(top_k)
+    # Compute the norms of the train and test embeddings
+    train_norms = np.linalg.norm(train_embeddings, axis=1)
+    test_norms = np.linalg.norm(test_embeddings, axis=1)
+
+    # Compute the cosine similarities between all test and train embeddings
+    similarities = np.dot(test_embeddings, train_embeddings.T) / (
+        np.outer(test_norms, train_norms)
+    )
+
+    # Get the indices of the top k most similar embeddings for each test embedding
+    top_k_indices = np.argsort(similarities, axis=1)[:, -k:][:, ::-1]
     return top_k_indices
 
 # Function to rerank using CLIP
