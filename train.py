@@ -12,6 +12,7 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader, random_split, Sampler
 from torch.optim import lr_scheduler
 
+import torchvision
 from torchvision import transforms
 from transformers import AutoModel
 import numpy as np
@@ -600,10 +601,20 @@ if __name__ == "__main__":
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    trunk = ViTModel.from_pretrained('facebook/dino-vits16')
-    trunk_output_size = trunk.config.hidden_size
+    trunk = torchvision.models.efficientnet_b0(pretrained=True)  # You can select b0 to b7
+
+    # Adjust the trunk_output_size based on the chosen EfficientNet model
+    trunk_output_size = trunk.classifier[1].in_features
+
+    # Remove the classification layer and use it as a feature extractor
+    trunk.classifier = nn.Identity()
 
     trunk = nn.DataParallel(trunk).to(device)
+
+    # trunk = ViTModel.from_pretrained('facebook/dino-vits16')
+    # trunk_output_size = trunk.config.hidden_size
+
+    # trunk = nn.DataParallel(trunk).to(device)
     image_processor = ViTImageProcessor.from_pretrained('facebook/dino-vits16')
 
     dataset = ImageLabelDataset(image_preprocessor=image_processor, image_dir=image_dir,
