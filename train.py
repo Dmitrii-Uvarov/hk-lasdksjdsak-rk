@@ -10,6 +10,7 @@ from torch import nn
 from torch import optim
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader, random_split, Sampler
+from torch.optim import lr_scheduler
 
 from torchvision import transforms
 from transformers import AutoModel
@@ -631,6 +632,15 @@ if __name__ == "__main__":
     classifier = nn.DataParallel(Classifier(embedding_dim=args.embedding_size, num_classes=num_classes)).to(device)  
 
     classifier_optimizer = torch.optim.Adam(classifier.parameters(), lr=1e-4, weight_decay=1e-5)
+    trunk_scheduler = lr_scheduler.StepLR(trunk_optimizer, step_size=2, gamma=0.1)
+    embedder_scheduler = lr_scheduler.StepLR(embedder_optimizer, step_size=2, gamma=0.1)
+    classifier_scheduler = lr_scheduler.StepLR(classifier_optimizer, step_size=2, gamma=0.1)
+
+    schedulers = {
+        'trunk_scheduler': trunk_scheduler,
+        'embedder_scheduler': embedder_scheduler,
+        'classifier_scheduler': classifier_scheduler
+    }
 
     optimizers['classifier_optimizer'] = classifier_optimizer
 
@@ -649,6 +659,7 @@ if __name__ == "__main__":
         batch_size=batch_size,
         loss_funcs=loss_funcs,
         mining_funcs=mining_funcs,
+        lr_schedulers=schedulers,
         sampler=sampler,
         loss_weights=loss_weights,
         dataloader_num_workers=4,
@@ -661,7 +672,7 @@ if __name__ == "__main__":
     if args.load_last:
         start_epoch = load_last_checkpoint(models, optimizers, epochs_dir)
 
-    num_epochs = 8
+    num_epochs = 13
     for epoch in range(start_epoch, num_epochs):
         print(f"Starting epoch {epoch}/{num_epochs}")
         trainer.train(num_epochs=1)
