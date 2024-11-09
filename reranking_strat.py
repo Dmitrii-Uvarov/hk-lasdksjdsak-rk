@@ -151,7 +151,7 @@ if __name__ == "__main__":
 
     load_last_checkpoint(models, 'checkpoint_epoch_26.pth')
 
-    train_size = int(0.8 * len(dataset))
+    train_size = int(0.9 * len(dataset))
     test_size = len(dataset) - train_size
 
     train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
@@ -166,7 +166,7 @@ if __name__ == "__main__":
     test_embeddings = compute_embeddings(models, test_loader, device)
     print('embedded')
 
-    top50_indices = find_top_k(test_embeddings, test_embeddings, k=50)
+    top50_indices = find_top_k(test_embeddings, test_embeddings, k=12)
     print('top50')
 
     clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(device)
