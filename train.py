@@ -530,9 +530,9 @@ if __name__ == "__main__":
 
     parser.add_argument("--image_dir", type=str, default="../sekrrno/dataset", help="image dir")
     parser.add_argument("--epochs_dir", type=str, default="./epochs", help="epochs dir")
-    parser.add_argument("--embedding_size", type=int, default=32, help="embedding size")
-    parser.add_argument("--m_per_batch_size", type=int, default=32, help="m_per_batch_size")
-    parser.add_argument("--batch_size", type=int, default=512, help="batch size")
+    parser.add_argument("--embedding_size", type=int, default=16, help="embedding size")
+    parser.add_argument("--m_per_batch_size", type=int, default=16, help="m_per_batch_size")
+    parser.add_argument("--batch_size", type=int, default=128, help="batch size")
 
     args = parser.parse_args()
 
@@ -580,7 +580,7 @@ if __name__ == "__main__":
     sampler = MPerClassSampler(train_labels, m=args.m_per_batch_size, length_before_new_iter=len(train_labels))
 
     trunk_optimizer = torch.optim.Adam(trunk.parameters(), lr=5e-5, weight_decay=1e-5)
-    embedder_optimizer = torch.optim.Adam(embedder.parameters(), lr=1e-3, weight_decay=1e-5)
+    embedder_optimizer = torch.optim.Adam(embedder.parameters(), lr=1e-4, weight_decay=1e-5)
 
     models = {'trunk': trunk, 'embedder': embedder}
     optimizers = {'trunk_optimizer': trunk_optimizer, 'embedder_optimizer': embedder_optimizer}
@@ -594,7 +594,7 @@ if __name__ == "__main__":
 
     classifier = nn.DataParallel(Classifier(embedding_dim=args.embedding_size, num_classes=num_classes)).to(device)  
 
-    classifier_optimizer = torch.optim.Adam(classifier.parameters(), lr=1e-3, weight_decay=1e-5)
+    classifier_optimizer = torch.optim.Adam(classifier.parameters(), lr=1e-4, weight_decay=1e-5)
 
     optimizers['classifier_optimizer'] = classifier_optimizer
 
@@ -635,12 +635,12 @@ if __name__ == "__main__":
     )
     # dataset_dict = {"train": train_dataset, "test": test_dataset}
     dataset_dict = { "test": test_dataset}
-    tester.test(
+    print(tester.test(
         trunk_model = trunk,
         embedder_model=embedder,
         dataset_dict=dataset_dict,
         epoch=0
-    )
+    ))
 
 
     # from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
