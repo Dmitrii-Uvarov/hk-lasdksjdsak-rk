@@ -657,7 +657,7 @@ if __name__ == "__main__":
     classification_loss = nn.CrossEntropyLoss()
     loss_funcs['classifier_loss'] = classification_loss
 
-    loss_weights = {'metric_loss': 1.0, 'classifier_loss': 1.0}
+    loss_weights = {'metric_loss': 1.0, 'classifier_loss': 2.0}
 
     batch_size = args.batch_size
 
