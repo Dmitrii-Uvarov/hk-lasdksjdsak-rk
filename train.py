@@ -567,8 +567,8 @@ if __name__ == "__main__":
     parser.add_argument("--image_dir", type=str, default="../sekrrno/dataset", help="image dir")
     parser.add_argument("--epochs_dir", type=str, default="./epochs", help="epochs dir")
     parser.add_argument("--embedding_size", type=int, default=64, help="embedding size")
-    parser.add_argument("--m_per_batch_size", type=int, default=4, help="m_per_batch_size")
-    parser.add_argument("--batch_size", type=int, default=256, help="batch size")
+    parser.add_argument("--m_per_batch_size", type=int, default=8, help="m_per_batch_size")
+    parser.add_argument("--batch_size", type=int, default=512, help="batch size")
     parser.add_argument("--load_last", type=bool, default=True, help="load last")
 
     args = parser.parse_args()
