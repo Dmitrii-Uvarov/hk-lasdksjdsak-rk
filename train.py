@@ -656,7 +656,7 @@ if __name__ == "__main__":
     classification_loss = nn.CrossEntropyLoss()
     loss_funcs['classifier_loss'] = classification_loss
 
-    loss_weights = {'metric_loss': 1.0, 'classifier_loss': 1.0}
+    loss_weights = {'metric_loss': 1.0, 'classifier_loss': 4.0}
 
     batch_size = args.batch_size
 
@@ -680,7 +680,7 @@ if __name__ == "__main__":
     if args.load_last:
         start_epoch = load_last_checkpoint(models, optimizers, epochs_dir)
 
-    num_epochs = 10
+    num_epochs = 15
     for epoch in range(start_epoch, num_epochs):
         print(f"Starting epoch {epoch}/{num_epochs}")
         trainer.train(num_epochs=1)
