@@ -543,14 +543,14 @@ if __name__ == "__main__":
     create_image_label_txt(image_dir, output_file)
 
 
-    transform = transforms.Compose([
-        # transforms.Resize((224, 224)),
-        # transforms.RandomResizedCrop(224, scale=(0.8, 1.0), ratio=(0.75, 1.33)),
-        # transforms.RandomHorizontalFlip(),
-        # transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.1),
-        # transforms.RandomRotation(degrees=10),
-        transforms.ToTensor()
-    ])
+    # transform = transforms.Compose([
+    #     # transforms.Resize((224, 224)),
+    #     # transforms.RandomResizedCrop(224, scale=(0.8, 1.0), ratio=(0.75, 1.33)),
+    #     # transforms.RandomHorizontalFlip(),
+    #     # transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.1),
+    #     # transforms.RandomRotation(degrees=10),
+    #     transforms.ToTensor()
+    # ])
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -560,7 +560,7 @@ if __name__ == "__main__":
     trunk = nn.DataParallel(trunk).to(device)
     image_processor = ViTImageProcessor.from_pretrained('facebook/dino-vits16')
 
-    dataset = ImageLabelDataset(image_preprocessor=image_processor, image_dir=image_dir, txt_file=output_file, transform=transform)
+    dataset = ImageLabelDataset(image_preprocessor=image_processor, image_dir=image_dir, txt_file=output_file)#, transform=transform)
 
     embedder = nn.DataParallel(Embedder(input_dim=trunk_output_size, embedding_dim=args.embedding_size)).to(device)
 
