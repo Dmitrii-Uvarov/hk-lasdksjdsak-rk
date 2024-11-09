@@ -389,7 +389,7 @@ class ImageLabelDataset(Dataset):
 
         with open(txt_file, 'r') as file:
             for line in file:
-                image_path, label = line.strip().split(':')
+                image_path, label = line.strip().split(';')
                 self.image_label_list.append((image_path, int(label)))
 
     def __len__(self):
