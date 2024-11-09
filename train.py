@@ -603,6 +603,9 @@ if __name__ == "__main__":
     trunk = ViTModel.from_pretrained('facebook/dino-vits16')
     trunk_output_size = trunk.config.hidden_size
 
+    for param in trunk.parameters():
+        param.requires_grad = True
+
     trunk = nn.DataParallel(trunk).to(device)
     image_processor = ViTImageProcessor.from_pretrained('facebook/dino-vits16')
 
