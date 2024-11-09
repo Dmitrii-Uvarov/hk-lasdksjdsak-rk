@@ -11,6 +11,7 @@ from torch import optim
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader, random_split, Sampler
 from torch.optim import lr_scheduler
+import json
 
 from torchvision import transforms
 from transformers import AutoModel
@@ -382,22 +383,23 @@ class TripletLoss(torch.nn.Module):
 
 
 class ImageLabelDataset(Dataset):
-    def __init__(self, image_preprocessor, image_dir, txt_file, transform=None):
+    def __init__(self, image_preprocessor, json_file, image_dir, transform=None):
+        self.image_preprocessor = image_preprocessor
         self.image_dir = image_dir
         self.transform = transform
-        self.image_label_list = []
-        self.image_preprocessor = image_preprocessor
 
-        with open(txt_file, 'r') as file:
-            for line in file:
-                image_path, label = line.strip().split(';')
-                self.image_label_list.append((image_path, int(label)))
+        with open(json_file, 'r', encoding='utf-8') as file:
+            self.data = json.load(file)
 
     def __len__(self):
-        return len(self.image_label_list)
+        return len(self.data)
 
     def __getitem__(self, idx):
-        image_path, label = self.image_label_list[idx]
+        item = self.data[idx]
+        image_path = item['image_path']
+        label = item['label']
+        embedding = item['caption_embedding']
+
         image = Image.open(os.path.join(self.image_dir, image_path)).convert("RGB")
 
         if self.transform:
@@ -405,7 +407,10 @@ class ImageLabelDataset(Dataset):
 
         image = self.image_preprocessor(images=image, return_tensors='pt')['pixel_values'].squeeze(0)
 
-        return image, label
+        label = torch.tensor(label, dtype=torch.long)
+        embedding = torch.tensor(embedding, dtype=torch.float32)
+
+        return image, label, embedding
     
 
 class Embedder(nn.Module):
@@ -515,7 +520,15 @@ class Classifier(nn.Module):
 #         print(f"Average matching ratio: {average_matching_ratio:.4f}")
 #         print(f"MAP@10: {map10:.4f}")
 
+class CosineEmbeddingLoss(nn.Module):
+    def __init__(self):
+        super(CosineEmbeddingLoss, self).__init__()
+        self.cosine_similarity = nn.CosineSimilarity(dim=1)
 
+    def forward(self, model_embeddings, target_embeddings):
+        cosine_sim = self.cosine_similarity(model_embeddings, target_embeddings)
+        loss = 1 - cosine_sim.mean()
+        return loss
 
 def create_directory_if_not_exists(directory_path):
     if not os.path.exists(directory_path):
@@ -576,8 +589,6 @@ if __name__ == "__main__":
     image_dir = args.image_dir
     epochs_dir = args.epochs_dir
     create_directory_if_not_exists(epochs_dir)
-    output_file = "image_labels.txt"
-    # create_image_label_txt(image_dir, output_file)
 
 
     transform = transforms.Compose([
@@ -597,7 +608,7 @@ if __name__ == "__main__":
     trunk = nn.DataParallel(trunk).to(device)
     image_processor = ViTImageProcessor.from_pretrained('facebook/dino-vits16')
 
-    dataset = ImageLabelDataset(image_preprocessor=image_processor, image_dir=image_dir, txt_file=output_file)#, transform=transform)
+    dataset = ImageLabelDataset(image_preprocessor=image_processor, image_dir=image_dir, json_file='captions_embed.json')#, transform=transform)
 
     embedder = nn.DataParallel(Embedder(input_dim=trunk_output_size, embedding_dim=args.embedding_size)).to(device)
 
@@ -625,6 +636,15 @@ if __name__ == "__main__":
         'metric_loss': metric_loss
     }
 
+    loss_weights = {
+    'metric_loss': 1.0,
+    'classifier_loss': 1.0,
+    'embedding_loss': 1.0  
+    }
+
+    embedding_loss_func = CosineEmbeddingLoss()
+    loss_funcs['embedding_loss'] = embedding_loss_func
+
     mining_funcs = {'tuple_miner': miner}
 
     num_classes = len(set(train_labels))
@@ -647,47 +667,189 @@ if __name__ == "__main__":
     classification_loss = nn.CrossEntropyLoss()
     loss_funcs['classifier_loss'] = classification_loss
 
-    loss_weights = {'metric_loss': 1.0, 'classifier_loss': 1.0}
 
     batch_size=args.batch_size
 
     models['classifier'] = classifier
 
-    trainer = TrainWithClassifier(
-        models=models,
-        optimizers=optimizers,
-        batch_size=batch_size,
-        loss_funcs=loss_funcs,
-        mining_funcs=mining_funcs,
-        lr_schedulers=schedulers,
-        sampler=sampler,
-        loss_weights=loss_weights,
-        dataloader_num_workers=4,
-        dataset=train_dataset,
-        data_device=device,
-    )
+    # trainer = TrainWithClassifier(
+    #     models=models,
+    #     optimizers=optimizers,
+    #     batch_size=batch_size,
+    #     loss_funcs=loss_funcs,
+    #     mining_funcs=mining_funcs,
+    #     lr_schedulers=schedulers,
+    #     sampler=sampler,
+    #     loss_weights=loss_weights,
+    #     dataloader_num_workers=4,
+    #     dataset=train_dataset,
+    #     data_device=device,
+    # )
 
 
     start_epoch = 0
     if args.load_last:
         start_epoch = load_last_checkpoint(models, optimizers, epochs_dir)
 
-    num_epochs = 27
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=4
+    )
+
+    test_loader = DataLoader(
+        test_dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=4
+    )
+
+    num_epochs = 10
     for epoch in range(start_epoch, num_epochs):
         print(f"Starting epoch {epoch}/{num_epochs}")
-        trainer.train(num_epochs=1)
-        save_checkpoint(models, optimizers, epoch, epochs_dir)
 
-    accuracy_calculator = AccuracyCalculator(include=('mean_average_precision',), k=10, knn_func=FaissKNN())
-    tester = testers.GlobalEmbeddingSpaceTester(dataloader_num_workers=4, accuracy_calculator=accuracy_calculator)
-    dataset_dict = {"test": test_dataset}
+        # Training phase
+        models['trunk'].train()
+        models['embedder'].train()
+        models['classifier'].train()
 
-    print(tester.test(
-        trunk_model=models['trunk'],
-        embedder_model=models['embedder'],
-        dataset_dict=dataset_dict,
-        epoch=0
-    ))
+        train_loss = 0
+        train_loader_tqdm = tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs} - Training")
+        train_embeddings = []
+        train_labels = []
+
+        for images, labels, target_embeddings in train_loader:
+            images = images.to(device)
+            labels = labels.to(device)
+            target_embeddings = target_embeddings.to(device)
+
+            # Zero the gradients
+            for optimizer in optimizers.values():
+                optimizer.zero_grad()
+
+            # Forward pass
+            trunk_output = models['trunk'](images)
+            embeddings = models['embedder'](trunk_output)
+            logits = models['classifier'](embeddings)
+
+            # Compute losses
+            metric_loss = loss_funcs['metric_loss'](embeddings, labels)
+            classifier_loss = loss_funcs['classifier_loss'](logits, labels)
+            embedding_loss = loss_funcs['embedding_loss'](embeddings, target_embeddings)
+
+            total_loss = (
+                loss_weights['metric_loss'] * metric_loss +
+                loss_weights['classifier_loss'] * classifier_loss +
+                loss_weights['embedding_loss'] * embedding_loss
+            )
+
+            # Backward pass and optimization
+            total_loss.backward()
+            for optimizer in optimizers.values():
+                optimizer.step()
+
+            train_loss += total_loss.item()
+            train_embeddings.append(embeddings.cpu())
+            train_labels.append(labels.cpu())
+
+            train_loader_tqdm.set_postfix(loss=total_loss.item())
+
+        train_embeddings = torch.cat(train_embeddings)
+        train_labels = torch.cat(train_labels)
+
+        # Step the schedulers
+        for scheduler in schedulers.values():
+            scheduler.step()
+
+        # Validation phase
+        models['trunk'].eval()
+        models['embedder'].eval()
+        models['classifier'].eval()
+
+        val_loss = 0
+        val_embeddings = []
+        val_labels = []
+        test_loader_tqdm = tqdm(test_loader, desc=f"Epoch {epoch+1}/{num_epochs} - Validation")
+
+        with torch.no_grad():
+            for images, labels, target_embeddings in test_loader:
+                images = images.to(device)
+                labels = labels.to(device)
+                target_embeddings = target_embeddings.to(device)
+
+                # Forward pass
+                trunk_output = models['trunk'](images)
+                embeddings = models['embedder'](trunk_output)
+                logits = models['classifier'](embeddings)
+
+                # Compute losses
+                metric_loss = loss_funcs['metric_loss'](embeddings, labels)
+                classifier_loss = loss_funcs['classifier_loss'](logits, labels)
+                embedding_loss = loss_funcs['embedding_loss'](embeddings, target_embeddings)
+
+                total_loss = (
+                    loss_weights['metric_loss'] * metric_loss +
+                    loss_weights['classifier_loss'] * classifier_loss +
+                    loss_weights['embedding_loss'] * embedding_loss
+                )
+
+                val_loss += total_loss.item()
+                val_embeddings.append(embeddings.cpu())
+                val_labels.append(labels.cpu())
+
+                test_loader_tqdm.set_postfix(loss=total_loss.item())
+
+        val_embeddings = torch.cat(val_embeddings)
+        val_labels = torch.cat(val_labels)
+
+        # Print the average losses
+        print(f"Epoch [{epoch+1}/{num_epochs}], Train Loss: {train_loss/len(train_loader)}, Val Loss: {val_loss/len(test_loader)}")
+        save_checkpoint(models, optimizers, schedulers, epoch, epochs_dir)
+
+        # Calculate metrics
+        matching_ratios = []
+        average_precisions = []
+
+        for i in range(len(val_embeddings)):
+            val_emb = val_embeddings[i]
+            val_label = val_labels[i]
+
+            # Compute cosine similarities with all train embeddings
+            distances = torch.nn.functional.cosine_similarity(train_embeddings, val_emb.unsqueeze(0), dim=1)
+            nearest_indices = torch.topk(distances, k=10, largest=False).indices
+            nearest_labels = train_labels[nearest_indices]
+
+            num_matching = (nearest_labels == val_label).sum().item()
+            matching_ratio = num_matching / 10.0
+            matching_ratios.append(matching_ratio)
+
+            relevant_indices = (nearest_labels == val_label).nonzero(as_tuple=True)[0]
+            precisions = [(rank + 1) / (index + 1) for rank, index in enumerate(relevant_indices.tolist())]
+            average_precision = sum(precisions) / len(precisions) if precisions else 0
+            average_precisions.append(average_precision)
+
+        # Compute average matching ratio and MAP@10
+        average_matching_ratio = sum(matching_ratios) / len(matching_ratios)
+        map10 = sum(average_precisions) / len(average_precisions)
+        print("\nValidation metric based on nearest neighbors:")
+        print(f"Average matching ratio: {average_matching_ratio:.4f}")
+        print(f"MAP@10: {map10:.4f}")
+    # for epoch in range(start_epoch, num_epochs):
+    #     print(f"Starting epoch {epoch}/{num_epochs}")
+    #     trainer.train(num_epochs=1)
+    #     save_checkpoint(models, optimizers, epoch, epochs_dir)
+
+    # accuracy_calculator = AccuracyCalculator(include=('mean_average_precision',), k=10, knn_func=FaissKNN())
+    # tester = testers.GlobalEmbeddingSpaceTester(dataloader_num_workers=4, accuracy_calculator=accuracy_calculator)
+    # dataset_dict = {"test": test_dataset}
+
+    # print(tester.test(
+    #     trunk_model=models['trunk'],
+    #     embedder_model=models['embedder'],
+    #     dataset_dict=dataset_dict,
+    #     epoch=0
+    # ))
 
     # from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
