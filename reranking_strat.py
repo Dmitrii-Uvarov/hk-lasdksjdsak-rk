@@ -15,14 +15,14 @@ from typing import List
 
 
 def compute_embeddings(model, dataloader, device):
-    models['embedder'].eval()
-    models['trunk'].eval()
+    model.eval()
     embeddings = []
     with torch.no_grad():
         for images, _ in dataloader:
             images = images.to(device)
-            img_feat = models['trunk'](images)
-            emb = models['embedder'](img_feat)
+            emb = model(images)
+            # If emb has an extra dimension, flatten it
+            emb = emb.view(images.size(0), -1)  # Flatten to shape (batch_size, embedding_size)
             embeddings.append(emb.cpu().numpy())
     return np.vstack(embeddings)
 
