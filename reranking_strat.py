@@ -130,6 +130,21 @@ def load_last_checkpoint(models, checkpoint_path):
     return checkpoint['epoch'] + 1
 
 
+def compute_ap_at_k(true_label, predicted_labels, k=10):
+    relevant_items = 0
+    precision_at_k = []
+
+    for i in range(min(k, len(predicted_labels))):
+        if predicted_labels[i] == true_label:
+            relevant_items += 1
+            precision_at_k.append(relevant_items / (i + 1))
+
+    # Calculate Average Precision @ K
+    if relevant_items == 0:
+        return 0.0  # No relevant items found
+    return sum(precision_at_k) / relevant_items
+
+
 if __name__ == "__main__":
     image_dir = "../sekrrno/dataset"
     output_file = "image_labels.txt"
@@ -186,7 +201,8 @@ if __name__ == "__main__":
             candidate_paths, clip_model, clip_processor, device)
         reranked_top10.append([test_labelsimg.index(img.replace(image_dir+'/', "")) for img in top10_images])
         print(label)
-        print([test_labels[test_labelsimg.index(img.replace(image_dir + '/', ""))] for img in top10_images])
+        print(compute_ap_at_k(label, [test_labels[test_labelsimg.index(
+            img.replace(image_dir + '/', ""))] for img in top10_images]))
         for i in range(len(top50_indices)):
             # Convert image paths to labels
             top10_labels = []
@@ -199,7 +215,7 @@ if __name__ == "__main__":
                     print(f"Warning: '{processed_path}' not found in test_labels.")
 
         # Print the labels and the corresponding top 50 indices
-        print("Top 10 Labels:", top10_labels)
+        print("Top 10 Labels:", compute_ap_at_k(label, top10_labels))
 
     map_reranked = mean_average_precision_at_k(test_labels, reranked_top10)
 
