@@ -198,8 +198,8 @@ if __name__ == "__main__":
                 else:
                     print(f"Warning: '{processed_path}' not found in test_labels.")
 
-    # Print the labels and the corresponding top 50 indices
-    print("Top 10 Labels:", top10_labels)
+        # Print the labels and the corresponding top 50 indices
+        print("Top 10 Labels:", top10_labels)
 
     map_reranked = mean_average_precision_at_k(test_labels, reranked_top10)
 
