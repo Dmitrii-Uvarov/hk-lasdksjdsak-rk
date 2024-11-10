@@ -22,7 +22,9 @@ def compute_embeddings(models, dataloader, device):
         for images, _ in dataloader:
             images = images.to(device)
             img_feat = models['trunk'](images)
+            print(img_feat.shape)
             emb = models['embedder'](img_feat)
+            print(emb.shape)
             emb = emb.view(images.size(0), -1)
             embeddings.append(emb.cpu().numpy())
     return np.vstack(embeddings)
