@@ -171,7 +171,7 @@ if __name__ == "__main__":
     test_embeddings = compute_embeddings(models, test_loader, device)
     print('embedded')
 
-    top50_indices = find_top_k(test_embeddings, test_embeddings, k=100)
+    top50_indices = find_top_k(test_embeddings, test_embeddings, k=50)
     original_top10 = [indices[:10] for indices in top50_indices]
     print('top50')
 
@@ -186,8 +186,20 @@ if __name__ == "__main__":
             candidate_paths, clip_model, clip_processor, device)
         reranked_top10.append([test_labelsimg.index(img.replace(image_dir+'/', "")) for img in top10_images])
         print(label)
-        print([test_labelsimg.index(img.replace(image_dir+'/', "")) for img in top10_images])
-        print(top50_indices[i][:10])
+        print([test_labels[test_labels.index(img.replace(image_dir + '/', ""))] for img in top10_images])
+        for i in range(len(top50_indices)):
+            # Convert image paths to labels
+            top10_labels = []
+            for img in top10_images:
+                processed_path = img.replace(image_dir + '/', "")
+                if processed_path in test_labels:
+                    label = test_labels[test_labels.index(processed_path)]
+                    top10_labels.append(label)
+                else:
+                    print(f"Warning: '{processed_path}' not found in test_labels.")
+
+    # Print the labels and the corresponding top 50 indices
+    print("Top 10 Labels:", top10_labels)
 
     map_reranked = mean_average_precision_at_k(test_labels, reranked_top10)
 
