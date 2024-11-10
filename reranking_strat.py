@@ -133,6 +133,8 @@ def load_last_checkpoint(models, checkpoint_path):
 def compute_ap_at_k(true_label, predicted_labels, k=10):
     relevant_items = 0
     precision_at_k = []
+    print(true_label)
+    print(predicted_labels)
 
     for i in range(min(k, len(predicted_labels))):
         if predicted_labels[i] == true_label:
