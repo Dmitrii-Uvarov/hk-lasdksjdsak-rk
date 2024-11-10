@@ -171,7 +171,8 @@ if __name__ == "__main__":
     test_embeddings = compute_embeddings(models, test_loader, device)
     print('embedded')
 
-    top50_indices = find_top_k(test_embeddings, test_embeddings, k=12)
+    top50_indices = find_top_k(test_embeddings, test_embeddings, k=30)
+    original_top10 = [indices[:10] for indices in top50_indices]
     print('top50')
 
     clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(device)
@@ -184,10 +185,12 @@ if __name__ == "__main__":
             os.path.join(image_dir, query_img_path),
             candidate_paths, clip_model, clip_processor, device)
         reranked_top10.append([test_labelsimg.index(img.replace(image_dir+'/', "")) for img in top10_images])
+        print(label)
+        print([test_labelsimg.index(img.replace(image_dir+'/', "")) for img in top10_images])
+        print(top50_indices[i][:10])
 
     map_reranked = mean_average_precision_at_k(test_labels, reranked_top10)
 
-    original_top10 = [indices[:10] for indices in top50_indices]
     map_original = mean_average_precision_at_k(test_labels, original_top10)
 
     print(f"MAP@10 with CLIP reranking: {map_reranked}")
