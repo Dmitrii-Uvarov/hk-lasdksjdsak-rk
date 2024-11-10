@@ -14,7 +14,7 @@ from typing import List
 # Function to compute embeddings
 
 
-def compute_embeddings(model, dataloader, device):
+def compute_embeddings(models, dataloader, device):
     models['embedder'].eval()
     models['trunk'].eval()
     embeddings = []
@@ -133,8 +133,6 @@ def load_last_checkpoint(models, checkpoint_path):
 def compute_ap_at_k(true_label, predicted_labels, k=10):
     relevant_items = 0
     precision_at_k = []
-    print(true_label)
-    print(predicted_labels)
 
     for i in range(min(k, len(predicted_labels))):
         if predicted_labels[i] == true_label:
@@ -168,60 +166,66 @@ if __name__ == "__main__":
 
     load_last_checkpoint(models, 'checkpoint_epoch_26.pth')
 
-    train_size = int(0.9 * len(dataset))
-    test_size = len(dataset) - train_size
+    full_loader = DataLoader(dataset, batch_size=512, shuffle=False)
 
-    train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
+    embeddings = compute_embeddings(models, full_loader, device)
 
-    train_labels = [dataset.image_label_list[idx] for idx in train_dataset.indices]
-    test_labels = [dataset.image_label_list[idx] for idx in test_dataset.indices]
+    np.save(file='full_embd.npy', arr=embeddings)
 
-    train_labelsimg = [dataset.image_label_list[idx][0] for idx in train_dataset.indices]
-    test_labelsimg = [dataset.image_label_list[idx][0] for idx in test_dataset.indices]
+    # train_size = int(0.9 * len(dataset))
+    # test_size = len(dataset) - train_size
 
-    print(test_labels[0])
+    # train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
 
-    train_loader = DataLoader(train_dataset, batch_size=256, shuffle=False)
-    test_loader = DataLoader(test_dataset, batch_size=256, shuffle=False)
+    # train_labels = [dataset.image_label_list[idx] for idx in train_dataset.indices]
+    # test_labels = [dataset.image_label_list[idx] for idx in test_dataset.indices]
 
-    # train_embeddings = compute_embeddings(models, train_loader, device)
-    test_embeddings = compute_embeddings(models, test_loader, device)
-    print('embedded')
+    # train_labelsimg = [dataset.image_label_list[idx][0] for idx in train_dataset.indices]
+    # test_labelsimg = [dataset.image_label_list[idx][0] for idx in test_dataset.indices]
 
-    top50_indices = find_top_k(test_embeddings, test_embeddings, k=50)
-    original_top10 = [indices[:10] for indices in top50_indices]
-    print('top50')
+    # print(test_labels[0])
 
-    clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(device)
-    clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
+    # train_loader = DataLoader(train_dataset, batch_size=256, shuffle=False)
+    # test_loader = DataLoader(test_dataset, batch_size=256, shuffle=False)
 
-    reranked_top10 = []
-    for i, (query_img_path, label) in enumerate(test_labels):
-        candidate_paths = [os.path.join(image_dir, test_labels[idx][0]) for idx in top50_indices[i]]
-        top10_images = rerank_with_clip(
-            os.path.join(image_dir, query_img_path),
-            candidate_paths, clip_model, clip_processor, device)
-        reranked_top10.append([test_labelsimg.index(img.replace(image_dir+'/', "")) for img in top10_images])
-        print(label)
-        print(compute_ap_at_k(label, [test_labels[test_labelsimg.index(
-            img.replace(image_dir + '/', ""))] for img in top10_images]))
-        for i in range(len(top50_indices)):
-            # Convert image paths to labels
-            top10_labels = []
-            for img in top10_images:
-                processed_path = img.replace(image_dir + '/', "")
-                if processed_path in test_labelsimg:
-                    label = test_labels[test_labelsimg.index(processed_path)]
-                    top10_labels.append(label)
-                else:
-                    print(f"Warning: '{processed_path}' not found in test_labels.")
+    # # train_embeddings = compute_embeddings(models, train_loader, device)
+    # test_embeddings = compute_embeddings(models, test_loader, device)
+    # print('embedded')
 
-        # Print the labels and the corresponding top 50 indices
-        print("Top 10 Labels:", compute_ap_at_k(label, top10_labels))
+    # top50_indices = find_top_k(test_embeddings, test_embeddings, k=50)
+    # original_top10 = [indices[:10] for indices in top50_indices]
+    # print('top50')
 
-    map_reranked = mean_average_precision_at_k(test_labels, reranked_top10)
+    # clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(device)
+    # clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
 
-    map_original = mean_average_precision_at_k(test_labels, original_top10)
+    # reranked_top10 = []
+    # for i, (query_img_path, label) in enumerate(test_labels):
+    #     candidate_paths = [os.path.join(image_dir, test_labels[idx][0]) for idx in top50_indices[i]]
+    #     top10_images = rerank_with_clip(
+    #         os.path.join(image_dir, query_img_path),
+    #         candidate_paths, clip_model, clip_processor, device)
+    #     reranked_top10.append([test_labelsimg.index(img.replace(image_dir+'/', "")) for img in top10_images])
+    #     print(label)
+    #     print(compute_ap_at_k(label, [test_labels[test_labelsimg.index(
+    #         img.replace(image_dir + '/', ""))] for img in top10_images]))
+    #     for i in range(len(top50_indices)):
+    #         # Convert image paths to labels
+    #         top10_labels = []
+    #         for img in top10_images:
+    #             processed_path = img.replace(image_dir + '/', "")
+    #             if processed_path in test_labelsimg:
+    #                 label = test_labels[test_labelsimg.index(processed_path)]
+    #                 top10_labels.append(label)
+    #             else:
+    #                 print(f"Warning: '{processed_path}' not found in test_labels.")
 
-    print(f"MAP@10 with CLIP reranking: {map_reranked}")
-    print(f"MAP@10 without CLIP reranking: {map_original}")
+    #     # Print the labels and the corresponding top 50 indices
+    #     print("Top 10 Labels:", compute_ap_at_k(label, top10_labels))
+
+    # map_reranked = mean_average_precision_at_k(test_labels, reranked_top10)
+
+    # map_original = mean_average_precision_at_k(test_labels, original_top10)
+
+    # print(f"MAP@10 with CLIP reranking: {map_reranked}")
+    # print(f"MAP@10 without CLIP reranking: {map_original}")
