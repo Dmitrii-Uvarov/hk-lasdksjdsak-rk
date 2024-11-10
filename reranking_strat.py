@@ -171,7 +171,7 @@ if __name__ == "__main__":
     test_embeddings = compute_embeddings(models, test_loader, device)
     print('embedded')
 
-    top50_indices = find_top_k(test_embeddings, test_embeddings, k=30)
+    top50_indices = find_top_k(test_embeddings, test_embeddings, k=100)
     original_top10 = [indices[:10] for indices in top50_indices]
     print('top50')
 
