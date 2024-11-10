@@ -192,8 +192,8 @@ if __name__ == "__main__":
             top10_labels = []
             for img in top10_images:
                 processed_path = img.replace(image_dir + '/', "")
-                if processed_path in test_labels:
-                    label = test_labels[test_labels.index(processed_path)]
+                if processed_path in test_labelsimg:
+                    label = test_labels[test_labelsimg.index(processed_path)]
                     top10_labels.append(label)
                 else:
                     print(f"Warning: '{processed_path}' not found in test_labels.")
