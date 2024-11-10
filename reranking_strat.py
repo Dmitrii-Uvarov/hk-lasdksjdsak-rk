@@ -186,7 +186,7 @@ if __name__ == "__main__":
             candidate_paths, clip_model, clip_processor, device)
         reranked_top10.append([test_labelsimg.index(img.replace(image_dir+'/', "")) for img in top10_images])
         print(label)
-        print([test_labels[test_labels.index(img.replace(image_dir + '/', ""))] for img in top10_images])
+        print([test_labels[test_labelsimg.index(img.replace(image_dir + '/', ""))] for img in top10_images])
         for i in range(len(top50_indices)):
             # Convert image paths to labels
             top10_labels = []
